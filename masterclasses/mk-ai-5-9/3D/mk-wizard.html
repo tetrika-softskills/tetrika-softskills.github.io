@@ -333,6 +333,7 @@ body{
   background:var(--surface2);border:1px solid var(--border);
   border-radius:var(--radius-sm);padding:20px;
   display:flex;flex-direction:column;align-items:center;
+  min-width:0;width:100%;
 }
 .device-card-title{
   font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#fff;
@@ -377,10 +378,11 @@ body{
 .device-sub{font-size:12px;color:var(--muted);text-align:center;margin-top:2px;}
 
 .link-row{
-  display:flex;align-items:center;gap:8px;margin-top:14px;width:100%;
+  display:flex;align-items:center;gap:8px;margin-top:14px;width:100%;min-width:0;
 }
-.link-row .prompt-wrap{flex:1;margin:0;padding:8px 12px;max-height:none;}
-.link-row .prompt-text{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:auto;}
+.link-row .prompt-wrap{flex:1;margin:0;padding:8px 12px;max-height:none;min-width:0;}
+.link-row .prompt-text{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:auto;cursor:pointer;color:var(--cyan);text-decoration:underline;}
+.wait-note{font-size:11px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.4;}
 
 .footer-note{
   font-size:12px;color:var(--muted);margin-top:6px;
@@ -629,9 +631,10 @@ body{
           <div class="mock-laptop-base"></div>
         </div>
         <div class="link-row">
-          <div class="prompt-wrap"><div class="prompt-text" id="published-link"></div></div>
+          <div class="prompt-wrap"><div class="prompt-text" id="published-link" onclick="openPublishedLink()"></div></div>
           <button class="btn btn-ghost" onclick="copyPublishedLink()">📋</button>
         </div>
+        <div class="wait-note" id="link-wait-note">⏳ Игра публикуется — подожди немного, потом жми ссылку</div>
       </div>
     </div>
 
@@ -974,7 +977,9 @@ function showPublishedResult(){
   });
 
   let seconds = 60;
+  S.linkReady = false;
   const openBtn = document.getElementById('open-game-btn');
+  const waitNote = document.getElementById('link-wait-note');
   openBtn.disabled = true;
   openBtn.textContent = `⏳ Подожди ${seconds} сек...`;
   const timer = setInterval(()=>{
@@ -983,10 +988,21 @@ function showPublishedResult(){
       clearInterval(timer);
       openBtn.disabled=false;
       openBtn.textContent='▶ Играть сейчас';
+      S.linkReady = true;
+      if(waitNote) waitNote.style.display = 'none';
     } else {
       openBtn.textContent=`⏳ Подожди ${seconds} сек...`;
     }
   },1000);
+}
+
+function openPublishedLink(){
+  if(!S.publishedUrl) return;
+  if(!S.linkReady){
+    showToast('⏳ Игра ещё публикуется, подожди немного');
+    return;
+  }
+  window.open(S.publishedUrl,'_blank');
 }
 
 function setBadge5(){
