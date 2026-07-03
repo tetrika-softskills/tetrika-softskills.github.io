@@ -651,16 +651,13 @@ const S = {
   publishedUrl: null
 };
 
-// ==== НАСТРОЙКИ ПУБЛИКАЦИИ НА GITHUB ====
-// GITHUB_TOKEN — вставь сюда свой Fine-grained Personal Access Token.
-// ВАЖНО: вставляй ТОЛЬКО сам токен внутрь уже существующих кавычек,
-// ничего лишнего (ни скобок, ни доп. кавычек) добавлять не нужно.
-// Пример: было   GITHUB_TOKEN = '';
-//         стало  GITHUB_TOKEN = 'github_pat_11ABCDEFG.......';
+// ==== НАСТРОЙКИ ПУБЛИКАЦИИ ====
+// Токен GitHub здесь НЕ хранится — публикация идёт через прокси-функцию
+// на Deno Deploy, которая сама подставляет токен на своей стороне.
 const GITHUB_OWNER = 'tetrika-softskills';
 const GITHUB_REPO  = 'tetrika-softskills.github.io';
 const GITHUB_PATH  = 'masterclasses/mk-ai-5-9/3D/student-games';
-const GITHUB_TOKEN = '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';
+const PROXY_URL    = 'https://raw-elephant-1934.tetrika-softskills.deno.net/';
 
 const STYLE_MAP = {
   Roblox:'blocky Roblox-style character, plastic smooth texture, square blocky head and body like a Roblox avatar, bright colorful outfit',
@@ -914,19 +911,14 @@ function toBase64(buffer){
 }
 
 async function githubPutFile(path, base64content, message){
-  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
-  const res = await fetch(url, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${GITHUB_TOKEN}`,
-      'Accept': 'application/vnd.github+json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ message, content: base64content })
+  const res = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path, content: base64content, message })
   });
   if(!res.ok){
     const err = await res.text();
-    throw new Error(`GitHub API error ${res.status}: ${err}`);
+    throw new Error(`Proxy error ${res.status}: ${err}`);
   }
   return res.json();
 }
