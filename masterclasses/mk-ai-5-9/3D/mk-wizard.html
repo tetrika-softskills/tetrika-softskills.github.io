@@ -212,6 +212,7 @@ body{
 .btn-ghost{background:rgba(255,255,255,0.06);color:var(--text);border:1px solid rgba(255,255,255,0.1);}
 .btn-ghost:hover{border-color:var(--border-bright);}
 .btn-success{background:linear-gradient(135deg,#00c875,#00ffaa);color:#000;box-shadow:0 4px 16px rgba(0,255,170,0.25);}
+.btn-success:disabled{opacity:0.45;pointer-events:none;}
 .btn-purple{background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;box-shadow:0 4px 16px rgba(168,85,247,0.25);}
 
 .btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px;}
@@ -294,32 +295,96 @@ body{
 }
 .code-area:focus{border-color:var(--cyan);}
 
+/* PUBLISH HINT (тихая сноска на шаге 4) */
+.publish-hint{
+  font-size:12px;color:var(--muted);line-height:1.5;
+  margin-top:10px;font-style:italic;
+}
+
 /* DIVIDER */
 .divider{height:1px;background:rgba(255,255,255,0.06);margin:22px 0;}
 
 /* SUCCESS */
-.success-wrap{text-align:center;padding:20px 0;}
-.success-icon{font-size:60px;margin-bottom:16px;}
+.success-wrap{text-align:center;padding:10px 0;}
+.success-icon{font-size:56px;margin-bottom:14px;}
 .success-title{
-  font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;
-  color:#fff;margin-bottom:8px;
+  font-family:'Nunito',sans-serif;font-size:28px;font-weight:900;
+  color:#fff;margin-bottom:10px;
 }
-.success-sub{color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:26px;max-width:440px;margin-left:auto;margin-right:auto;}
-.vercel-card{
-  background:var(--surface2);border:1px solid var(--border);
-  border-radius:var(--radius-sm);padding:20px;text-align:left;margin-bottom:18px;
-}
-.vercel-card-title{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#fff;margin-bottom:14px;}
+.success-sub{color:var(--text);font-size:15px;line-height:1.65;margin-bottom:18px;max-width:480px;margin-left:auto;margin-right:auto;opacity:0.85;}
 
-/* BADGE */
+/* THEME BADGE */
 .theme-badge{
   display:inline-flex;align-items:center;gap:5px;
   padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700;
   margin-left:8px;vertical-align:middle;
 }
+.theme-badge.lg{font-size:14px;padding:6px 16px;margin:0 0 26px;}
 .badge-city{background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.25);}
 .badge-mountain{background:rgba(102,204,255,0.12);color:#66ccff;border:1px solid rgba(102,204,255,0.25);}
 .badge-cyber{background:rgba(168,85,247,0.12);color:#a855f7;border:1px solid rgba(168,85,247,0.25);}
+
+/* DEVICE CARDS (шаг 5) */
+.device-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;
+  margin-bottom:20px;text-align:left;
+}
+.device-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:var(--radius-sm);padding:20px;
+  display:flex;flex-direction:column;align-items:center;
+}
+.device-card-title{
+  font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:#fff;
+  margin-bottom:16px;display:flex;align-items:center;gap:6px;
+}
+
+/* CSS-силуэт телефона */
+.mock-phone{
+  width:150px;height:230px;
+  background:#000;border-radius:22px;
+  border:3px solid #2a3550;
+  padding:14px 10px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;position:relative;margin-bottom:12px;
+}
+.mock-phone::before{
+  content:'';position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  width:36px;height:4px;border-radius:4px;background:#2a3550;
+}
+.mock-phone .qr-box{
+  background:#fff;padding:8px;border-radius:8px;width:110px;height:110px;
+  display:flex;align-items:center;justify-content:center;
+}
+.mock-phone .qr-box canvas, .mock-phone .qr-box img{width:100%!important;height:100%!important;}
+.mock-stripe{width:80%;height:5px;border-radius:3px;background:var(--accent-grad,linear-gradient(90deg,var(--cyan),var(--purple)));}
+
+/* CSS-силуэт ноутбука */
+.mock-laptop{
+  width:220px;margin-bottom:12px;
+}
+.mock-laptop-screen{
+  background:#000;border:3px solid #2a3550;border-radius:10px 10px 4px 4px;
+  padding:16px 14px;min-height:120px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+}
+.mock-laptop-base{
+  height:10px;background:#1a2235;border:1px solid #2a3550;border-top:none;
+  border-radius:0 0 10px 10px;
+  margin:0 -4px;
+}
+
+.device-sub{font-size:12px;color:var(--muted);text-align:center;margin-top:2px;}
+
+.link-row{
+  display:flex;align-items:center;gap:8px;margin-top:14px;width:100%;
+}
+.link-row .prompt-wrap{flex:1;margin:0;padding:8px 12px;max-height:none;}
+.link-row .prompt-text{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:auto;}
+
+.footer-note{
+  font-size:12px;color:var(--muted);margin-top:6px;
+}
 
 /* TOAST */
 .toast{
@@ -341,6 +406,8 @@ body{
   .prog-label{display:none;}
   .btn-row{flex-direction:column;}
   .btn{width:100%;justify-content:center;}
+  .device-grid{grid-template-columns:1fr;}
+  .mock-phone,.mock-laptop{margin-left:auto;margin-right:auto;}
 }
 </style>
 </head>
@@ -512,7 +579,7 @@ body{
 <div class="card">
   <div class="step-eyebrow">Шаг 4 из 5</div>
   <div class="step-title">Собираем игру <span id="badge4"></span></div>
-  <div class="step-desc">Загрузи GLB-модель и вставь код — сайт упакует всё в готовый архив.</div>
+  <div class="step-desc">Загрузи GLB-модель и вставь код — через пару секунд игра будет в интернете.</div>
 
   <div class="section-label">📂 1. Загрузи 3D-модель (.glb)</div>
   <div class="dropzone" id="dropzone" onclick="document.getElementById('glb-inp').click()">
@@ -527,8 +594,9 @@ body{
 
   <div class="btn-row">
     <button class="btn btn-ghost" onclick="goStep(3)">← Назад</button>
-    <button class="btn btn-success" id="btn-build" onclick="buildZip()" disabled>⬇️ Скачать game.zip</button>
+    <button class="btn btn-success" id="btn-build" onclick="publishToGithub()" disabled>🚀 Опубликовать игру</button>
   </div>
+  <div class="publish-hint">ИИ каждый раз генерирует код немного по-своему — если что-то работает не идеально, покажи преподавателю, поправим вместе.</div>
 </div>
 </div>
 
@@ -536,24 +604,38 @@ body{
 <div class="step-panel" id="step-5">
 <div class="card">
   <div class="success-wrap">
-    <div class="success-icon">🎮</div>
-    <div class="success-title">Игра готова!</div>
-    <div class="success-sub">Осталось опубликовать в интернете — получишь ссылку, которую можно скинуть другу прямо сейчас.</div>
+    <div class="success-icon">🎉</div>
+    <div class="success-title">Твоя игра готова!</div>
+    <div class="success-sub">Ты прошёл(ла) весь путь: придумал(а) персонажа, оживил(а) его в 3D и запустил(а) свою собственную игру в интернете. Это уже классный результат!</div>
 
-    <div class="vercel-card">
-      <div class="vercel-card-title">🚀 Как опубликовать на Vercel</div>
-      <div class="instr-list" style="margin-bottom:0">
-        <div class="instr-step"><div class="instr-num">1</div><div class="instr-body">Открой Vercel по кнопке ниже</div></div>
-        <div class="instr-step"><div class="instr-num">2</div><div class="instr-body">Нажми <strong>«Add New → Project»</strong></div></div>
-        <div class="instr-step"><div class="instr-num">3</div><div class="instr-body">Перетащи <strong>game.zip</strong> на страницу Vercel</div></div>
-        <div class="instr-step" style="border:none"><div class="instr-num">4</div><div class="instr-body">Нажми <strong>«Deploy»</strong> — через 30 секунд получишь ссылку!</div></div>
+    <div id="theme-badge-5"></div>
+
+    <div class="device-grid" id="published-block" style="display:none;">
+      <div class="device-card">
+        <div class="device-card-title">📱 Играй с телефона</div>
+        <div class="mock-phone">
+          <div class="qr-box" id="qrcode"></div>
+          <div class="mock-stripe"></div>
+        </div>
+        <div class="device-sub">Наведи камеру и сканируй</div>
+      </div>
+
+      <div class="device-card">
+        <div class="device-card-title">💻 Играй здесь</div>
+        <div class="mock-laptop">
+          <div class="mock-laptop-screen">
+            <button class="btn btn-success" id="open-game-btn" onclick="window.open(S.publishedUrl,'_blank')" disabled>⏳ Подожди 60 сек...</button>
+          </div>
+          <div class="mock-laptop-base"></div>
+        </div>
+        <div class="link-row">
+          <div class="prompt-wrap"><div class="prompt-text" id="published-link"></div></div>
+          <button class="btn btn-ghost" onclick="copyPublishedLink()">📋</button>
+        </div>
       </div>
     </div>
 
-    <div class="btn-row" style="justify-content:center">
-      <a href="https://vercel.com/new" target="_blank" class="btn btn-primary">🚀 Открыть Vercel →</a>
-      <button class="btn btn-ghost" onclick="buildZip()">⬇️ Скачать снова</button>
-    </div>
+    <div class="footer-note">Если что-то в игре работает не так — ничего страшного, покажи преподавателю 🙂</div>
   </div>
 </div>
 </div>
@@ -561,12 +643,24 @@ body{
 </div><!-- /container -->
 <div class="toast" id="toast"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 const S = {
   theme: null, color:'red', acc:'baseball cap', sty:'Roblox',
-  glbData: null, charPromptText:'', gamePromptText:''
+  glbData: null, charPromptText:'', gamePromptText:'',
+  publishedUrl: null
 };
+
+// ==== НАСТРОЙКИ ПУБЛИКАЦИИ НА GITHUB ====
+// GITHUB_TOKEN — вставь сюда свой Fine-grained Personal Access Token.
+// ВАЖНО: вставляй ТОЛЬКО сам токен внутрь уже существующих кавычек,
+// ничего лишнего (ни скобок, ни доп. кавычек) добавлять не нужно.
+// Пример: было   GITHUB_TOKEN = '';
+//         стало  GITHUB_TOKEN = 'github_pat_11ABCDEFG.......';
+const GITHUB_OWNER = 'tetrika-softskills';
+const GITHUB_REPO  = 'tetrika-softskills.github.io';
+const GITHUB_PATH  = 'masterclasses/mk-ai-5-9/3D/student-games';
+const GITHUB_TOKEN = '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';
 
 const STYLE_MAP = {
   Roblox:'blocky Roblox-style character, plastic smooth texture, square blocky head and body like a Roblox avatar, bright colorful outfit',
@@ -713,7 +807,6 @@ function pickOpt(el,type){
 function buildCharPrompt(){
   if(!S.theme) return;
   const transport=TRANSPORT_MAP[S.theme];
-  const transportRu=TRANSPORT_RU[S.theme];
   const styleDesc=STYLE_MAP[S.sty]||S.sty;
   const p=`A full-body character portrait, ${styleDesc}.
 
@@ -794,18 +887,136 @@ function checkBuild(){
   document.getElementById('btn-build').disabled=!ok;
 }
 
-async function buildZip(){
-  const code=document.getElementById('code-in').value.trim();
-  if(!code||!S.glbData){showToast('⚠️ Нужен код и модель!');return;}
-  const zip=new JSZip();
-  zip.file('index.html',code);
-  zip.file('player_game.glb',S.glbData);
-  const blob=await zip.generateAsync({type:'blob'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='game.zip';a.click();
-  URL.revokeObjectURL(url);
-  goStep(5);
+// ===== ПУБЛИКАЦИЯ НА GITHUB =====
+
+// Приводит любое упоминание файла *.glb в коде игры к единому имени player_game.glb.
+// Это нужно, чтобы вставленный код (из Qwen ИЛИ из запасного образца) всегда
+// ссылался ровно на тот файл модели, который реально загружен рядом.
+function normalizeGlbFilename(code){
+  return code.replace(/(['"])[^'"]*?\.glb\1/gi, `$1player_game.glb$1`);
+}
+
+function genId(){
+  const d = new Date();
+  const date = d.toISOString().slice(0,10); // 2026-07-03
+  const rand = Math.random().toString(36).slice(2,8); // 6 случайных символов
+  return { date, id: `${date}/${rand}` };
+}
+
+function toBase64(buffer){
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunk = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+  }
+  return btoa(binary);
+}
+
+async function githubPutFile(path, base64content, message){
+  const url = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${path}`;
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${GITHUB_TOKEN}`,
+      'Accept': 'application/vnd.github+json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ message, content: base64content })
+  });
+  if(!res.ok){
+    const err = await res.text();
+    throw new Error(`GitHub API error ${res.status}: ${err}`);
+  }
+  return res.json();
+}
+
+async function publishToGithub(){
+  const rawCode=document.getElementById('code-in').value.trim();
+  if(!rawCode||!S.glbData){showToast('⚠️ Нужен код и модель!');return;}
+
+  const btn=document.getElementById('btn-build');
+  const originalText=btn.textContent;
+  btn.disabled=true;
+  btn.textContent='⏳ Публикуем...';
+
+  try{
+    const code = normalizeGlbFilename(rawCode);
+    const { id } = genId();
+    const folder = `${GITHUB_PATH}/${id}`;
+
+    const htmlBase64 = btoa(unescape(encodeURIComponent(code)));
+    const glbBase64  = toBase64(S.glbData);
+
+    await githubPutFile(`${folder}/index.html`, htmlBase64, `add game ${id}`);
+    await githubPutFile(`${folder}/player_game.glb`, glbBase64, `add model ${id}`);
+
+    S.publishedUrl = `https://${GITHUB_OWNER}.github.io/${folder}/`;
+
+    goStep(5);
+    showPublishedResult();
+
+  } catch(e){
+    console.error(e);
+    showToast('⚠️ Не получилось опубликовать, попробуй ещё раз');
+  } finally {
+    btn.disabled=false;
+    btn.textContent=originalText;
+  }
+}
+
+function showPublishedResult(){
+  setBadge5();
+
+  document.getElementById('published-link').textContent = S.publishedUrl;
+  document.getElementById('published-block').style.display = 'grid';
+
+  const qrEl = document.getElementById('qrcode');
+  qrEl.innerHTML = '';
+  new QRCode(qrEl, {
+    text: S.publishedUrl,
+    width: 96,
+    height: 96,
+    colorDark: '#0a0e1a',
+    colorLight: '#ffffff'
+  });
+
+  let seconds = 60;
+  const openBtn = document.getElementById('open-game-btn');
+  openBtn.disabled = true;
+  openBtn.textContent = `⏳ Подожди ${seconds} сек...`;
+  const timer = setInterval(()=>{
+    seconds--;
+    if(seconds<=0){
+      clearInterval(timer);
+      openBtn.disabled=false;
+      openBtn.textContent='▶ Играть сейчас';
+    } else {
+      openBtn.textContent=`⏳ Подожди ${seconds} сек...`;
+    }
+  },1000);
+}
+
+function setBadge5(){
+  if(!S.theme) return;
+  const td=TD[S.theme];
+  const el=document.getElementById('theme-badge-5');
+  if(el) el.innerHTML=`<span class="theme-badge lg ${td.cls}">${td.emoji} ${td.label}</span>`;
+}
+
+function copyPublishedLink(){
+  if(!S.publishedUrl) return;
+  const doCopy=t=>{
+    const ta=document.createElement('textarea');
+    ta.value=t;ta.style.cssText='position:fixed;top:-9999px;left:-9999px;opacity:0';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');showToast('✓ Ссылка скопирована!');}
+    catch{showToast('⚠️ Скопируй вручную из поля');}
+    document.body.removeChild(ta);
+  };
+  if(navigator.clipboard&&window.isSecureContext){
+    navigator.clipboard.writeText(S.publishedUrl).then(()=>showToast('✓ Ссылка скопирована!')).catch(()=>doCopy(S.publishedUrl));
+  } else { doCopy(S.publishedUrl); }
 }
 
 function copyText(id,stateKey){
