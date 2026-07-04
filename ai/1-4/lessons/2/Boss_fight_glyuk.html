@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Босс-файт: Зачистка Глюка</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0a0d;
+    --bg-1:#141117;
+    --bg-2:#1c1720;
+    --panel-border:#3a2028;
+    --boss-red:#ff3b4e;
+    --boss-dark:#5a1620;
+    --cyan:#4de8ff;
+    --green:#5de0a8;
+    --amber:#fac775;
+    --purple:#8b7bf0;
+    --text-0:#f5ece4;
+    --text-1:#b3a297;
+    --text-2:#7a6e66;
+    --font-head:'Orbitron', sans-serif;
+    --font-body:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #240d12 0%, var(--bg-0) 60%);
+    color:var(--text-0);
+    font-family:var(--font-body);
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .app{
+    width:100%; max-width:820px;
+    background:var(--bg-1);
+    border:1px solid var(--panel-border);
+    border-radius:20px;
+    padding:28px;
+    position:relative;
+    box-shadow:0 0 0 1px rgba(255,59,78,0.06), 0 30px 60px rgba(0,0,0,0.5);
+  }
+  .screen{display:none;}
+  .screen.active{display:block; animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  h1.title{ font-family:var(--font-head); font-size:26px; font-weight:800; letter-spacing:0.5px; text-align:center; color:var(--text-0); text-shadow:0 0 18px rgba(255,59,78,0.35); }
+  .subtitle{ text-align:center; color:var(--text-1); font-size:14px; margin-top:8px; margin-bottom:26px; line-height:1.5; }
+
+  .grade-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px; }
+  .grade-card{ background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:16px; padding:18px 16px; text-align:center; cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+  .grade-card:hover{ transform:translateY(-3px); border-color:var(--boss-red); }
+  .grade-card .emoji{font-size:34px; display:block; margin-bottom:8px;}
+  .grade-card h3{font-family:var(--font-head); font-size:15px; color:var(--text-0); margin-bottom:6px;}
+  .grade-card p{font-size:12.5px; color:var(--text-1); line-height:1.5; margin-bottom:14px; min-height:52px;}
+
+  .btn{ font-family:var(--font-body); font-weight:600; font-size:14px; color:var(--bg-0); background:var(--boss-red); border:none; border-radius:10px; padding:11px 18px; cursor:pointer; transition:box-shadow .15s ease, transform .1s ease; width:100%; }
+  .btn:hover{ box-shadow:0 0 18px rgba(255,59,78,0.5); }
+  .btn:active{ transform:scale(0.97); }
+  .btn.ghost{ background:transparent; color:var(--text-1); border:none; text-decoration:underline; padding:6px; width:auto; }
+  .btn.secondary{ background:transparent; color:var(--text-0); border:1.5px solid var(--panel-border); width:auto; }
+
+  .onb-box{ background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:16px; padding:26px 20px; text-align:center; }
+  .onb-visual{ min-height:110px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; gap:14px; }
+  .onb-title{ font-family:var(--font-head); font-size:17px; margin-bottom:10px; color:var(--text-0); }
+  .onb-text{ font-size:14px; color:var(--text-1); line-height:1.6; max-width:440px; margin:0 auto; }
+  .onb-dots{ display:flex; justify-content:center; gap:6px; margin:18px 0; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--panel-border); }
+  .dot.active{ background:var(--boss-red); }
+  .onb-nav{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:10px; }
+  .onb-nav .btn{ width:auto; }
+
+  .arena{ position:relative; background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:18px; padding:26px; overflow:hidden; }
+  .arena.shake{ animation:shakeErr .25s; }
+  @keyframes shakeErr{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-8px);} 75%{transform:translateX(8px);} }
+
+  .hp-wrap{ margin-bottom:20px; }
+  .hp-label{ display:flex; justify-content:space-between; font-size:11px; color:var(--text-2); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+  .hp-bar-track{ width:100%; height:16px; background:var(--bg-0); border-radius:8px; overflow:hidden; border:1.5px solid var(--panel-border); }
+  .hp-bar-fill{ height:100%; background:linear-gradient(90deg, var(--boss-red), #ff7a6b); width:100%; transition:width .35s ease; }
+  .combo-badge{ background:var(--bg-0); border:1.5px solid var(--purple); color:var(--purple); font-family:var(--font-head); font-size:12px; padding:4px 10px; border-radius:20px; opacity:0; transition:opacity .2s; margin-left:10px; }
+  .combo-badge.show{ opacity:1; }
+
+  .boss-zone{ display:flex; align-items:center; justify-content:center; min-height:200px; position:relative; }
+  .boss-svg-wrap{ position:relative; }
+  .dmg-float{ position:absolute; font-family:var(--font-head); font-weight:700; font-size:20px; color:var(--boss-red); pointer-events:none; animation:dmgFloat .7s ease-out forwards; left:50%; top:20%; }
+  @keyframes dmgFloat{ 0%{ opacity:1; transform:translate(-50%,0);} 100%{ opacity:0; transform:translate(-50%,-50px);} }
+
+  .target-zone{ margin-top:26px; text-align:center; }
+  .target-panel{ display:inline-block; background:var(--bg-0); border:2px solid var(--cyan); border-radius:16px; padding:18px 28px; }
+  .target-text{ font-family:var(--font-head); font-size:26px; letter-spacing:3px; }
+  .target-text .typed{ color:var(--green); }
+  .target-text .pending{ color:var(--text-0); }
+  .target-hint{ font-size:12px; color:var(--text-2); margin-top:8px; }
+  .feedback-line{ font-family:var(--font-head); font-size:14px; min-height:20px; color:var(--text-1); text-align:center; margin-top:14px; }
+
+  .mini-keyboard{ display:flex; flex-direction:column; align-items:center; gap:6px; margin-top:18px; }
+  .mk-row{ display:flex; gap:5px; flex-wrap:nowrap; }
+  .mk-row.row2{ margin-left:16px; }
+  .mk-row.row3{ margin-left:34px; }
+  .mk-key{ min-width:28px; height:28px; padding:0 5px; border-radius:6px; background:var(--bg-0); border:1.5px solid var(--panel-border); display:flex; align-items:center; justify-content:center; font-size:11px; color:var(--text-2); font-family:var(--font-head); flex-shrink:0; }
+  .mk-key.target{ border-color:var(--cyan); color:var(--text-0); box-shadow:0 0 10px rgba(77,232,255,0.4); }
+
+  .victory-box{ text-align:center; background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:18px; padding:40px 24px; }
+  .victory-title{ font-family:var(--font-head); font-size:28px; color:var(--green); text-shadow:0 0 22px rgba(93,224,168,0.5); margin-bottom:14px; }
+  .victory-text{ color:var(--text-1); font-size:14px; margin-bottom:24px; }
+  .victory-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SCREEN 1: START ============ -->
+  <div class="screen active" id="screen-start">
+    <h1 class="title">Финальный протокол: Зачистка Глюка</h1>
+    <p class="subtitle">Всё, чему ты научился сегодня, сходится здесь. Победи Глюка — и Лаборатория снова заработает.</p>
+    <div class="grade-grid">
+      <div class="grade-card" onclick="chooseGrade('junior')">
+        <span class="emoji">🐣</span>
+        <h3>Junior</h3>
+        <p>Жми любые буквы — Глюк теряет HP от каждого нажатия.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('middle')">
+        <span class="emoji">🐾</span>
+        <h3>Middle</h3>
+        <p>Печатай слова верно — урон только за точное попадание буквы.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('senior')">
+        <span class="emoji">⚡</span>
+        <h3>Senior</h3>
+        <p>Целые фразы без ошибок. Комбо усиливает удар до x4.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2: ONBOARDING ============ -->
+  <div class="screen" id="screen-onboarding">
+    <h1 class="title" style="font-size:20px;">Протокол финальной битвы</h1>
+    <div class="onb-box" style="margin-top:20px;">
+      <div class="onb-visual" id="onb-visual"></div>
+      <div class="onb-title" id="onb-title"></div>
+      <div class="onb-text" id="onb-text"></div>
+    </div>
+    <div class="onb-dots" id="onb-dots"></div>
+    <div class="onb-nav">
+      <button class="btn ghost" onclick="onbPrev()" id="onb-prev">Назад</button>
+      <button class="btn" style="width:auto;" onclick="onbNext()" id="onb-next">В бой!</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3: GAME ============ -->
+  <div class="screen" id="screen-game">
+    <div class="arena" id="arena">
+      <div class="hp-wrap">
+        <div class="hp-label"><span>HP Глюка</span><span id="hp-percent">100%</span></div>
+        <div style="display:flex; align-items:center;">
+          <div class="hp-bar-track" style="flex:1;"><div class="hp-bar-fill" id="hp-fill"></div></div>
+          <div class="combo-badge" id="combo-badge">x1</div>
+        </div>
+      </div>
+
+      <div class="boss-zone">
+        <div class="boss-svg-wrap" id="boss-svg-wrap"></div>
+      </div>
+
+      <div class="target-zone">
+        <div class="target-panel">
+          <div class="target-text" id="target-text"></div>
+        </div>
+        <div class="target-hint" id="target-hint"></div>
+        <div class="mini-keyboard" id="mini-keyboard"></div>
+        <div class="feedback-line" id="feedback-line"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 4: VICTORY ============ -->
+  <div class="screen" id="screen-victory">
+    <div class="victory-box">
+      <div class="victory-title">Лаборатория очищена!</div>
+      <div class="victory-text" id="victory-text">Глюк повержен. Твой Кибер-Спутник снова в безопасности.</div>
+      <div class="victory-actions">
+        <button class="btn" style="width:auto;" onclick="restartSameGrade()">Ещё раз</button>
+        <button class="btn secondary" onclick="goToStart()">Выбрать другой грейд</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const BOSS_CONFIG = {
+  junior: { hpMax:100, mode:'word', dmgPerWord:20, showKeyboard:false, pool:'junior' },
+  middle: { hpMax:100, mode:'word', dmgPerWord:20, showKeyboard:false, pool:'middle' },
+  senior: { hpMax:100, mode:'phrase', dmgBase:15, combo:true }
+};
+
+const JUNIOR_BOSS_WORDS = ['БОТ','АРТ','КОД','ЧАТ','ЛУЧ','ЩИТ','ДРУГ','СВЕТ','ИГРА','ФАЙЛ'];
+const BOSS_WORDS = ['УДАР','ЩИТ','ЛУЧ','ЗАРЯД','ИСКРА','ВЗРЫВ','СИЛА','АТАКА','ЭНЕРГИЯ','ПОБЕДА'];
+const BOSS_PHRASES = [
+  'УДАЛИ ГЛЮК','ЗАКРОЙ БАГ','СОТРИ ВИРУС','ОСТАНОВИ СБОЙ',
+  'ПОЧИНИ СИСТЕМУ','ВЫРУБИ ПОМЕХИ','ЗАБЛОКИРУЙ ХАКЕРА','ОЧИСТИ ЯДРО'
+];
+const RU_ROW1 = 'ЙЦУКЕНГШЩЗХЪ'.split('');
+const RU_ROW2 = 'ФЫВАПРОЛДЖЭ'.split('');
+const RU_ROW3 = 'ЯЧСМИТЬБЮ'.split('');
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = {
+  grade:'junior', hp:100, combo:1, comboStreak:0,
+  currentTarget:'', typedIndex:0, mistakeInAttempt:false,
+  seq:[], seqIndex:0
+};
+
+/* =========================================================
+   BOSS SVG — три стадии повреждения
+   ========================================================= */
+function bossSVG(stage){
+  // stage: 1 целый, 2 потрёпанный, 3 критический
+  const glitchOpacity = stage === 1 ? 0.25 : (stage === 2 ? 0.5 : 0.85);
+  const coreColor = stage === 1 ? '#5a1620' : (stage === 2 ? '#7a1420' : '#a30f1f');
+  const crackLines = stage >= 2
+    ? '<path d="M60 40 L75 65 L58 90" stroke="#ff3b4e" stroke-width="2" fill="none" opacity="0.8"/><path d="M120 35 L108 60 L125 88" stroke="#ff3b4e" stroke-width="2" fill="none" opacity="0.8"/>'
+    : '';
+  const extraCracks = stage >= 3
+    ? '<path d="M90 25 L92 60 L85 100" stroke="#ff9c9c" stroke-width="1.5" fill="none" opacity="0.9"/><path d="M50 70 L70 75 L55 100" stroke="#ff9c9c" stroke-width="1.5" fill="none" opacity="0.9"/>'
+    : '';
+  return `<svg width="180" height="150" viewBox="0 0 180 150" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="90,15 130,40 145,85 120,125 60,125 35,85 50,40" fill="${coreColor}" stroke="#ff3b4e" stroke-width="3"/>
+    <polygon points="70,55 95,45 115,60 108,85 82,90 65,75" fill="#0a0a0d" opacity="0.6"/>
+    <circle cx="75" cy="65" r="7" fill="#ff3b4e"/>
+    <circle cx="105" cy="65" r="7" fill="#ff3b4e"/>
+    <rect x="20" y="55" width="12" height="4" fill="#ff3b4e" opacity="${glitchOpacity}"/>
+    <rect x="150" y="90" width="14" height="4" fill="#ff3b4e" opacity="${glitchOpacity}"/>
+    <rect x="30" y="105" width="10" height="3" fill="#ff3b4e" opacity="${glitchOpacity}"/>
+    ${crackLines}
+    ${extraCracks}
+  </svg>`;
+}
+
+/* =========================================================
+   ONBOARDING (короткий — механика печати уже знакома)
+   ========================================================= */
+const ONB_STEPS = {
+  junior: [
+    { title:'Финальный удар', text:'Печатай короткое слово на панели — Глюк получает урон, когда слово набрано полностью.', visual:() => bossSVG(1) }
+  ],
+  middle: [
+    { title:'Точный удар', text:'Печатай показанное слово по буквам. Урон наносит только верная буква — ошибка просто не считается, пробуй ту же букву снова.', visual:() => bossSVG(1) }
+  ],
+  senior: [
+    { title:'Идеальный удар', text:'Печатай фразу целиком без единой ошибки. Ошибся — начни эту фразу заново.', visual:() => bossSVG(1) },
+    { title:'Комбо усиливает урон', text:'Подряд идеально напечатанные фразы дают множитель x1–x4 — добивай Глюка на максимальном комбо!', visual:() => `<div style="font-family:var(--font-head); font-size:34px; color:var(--purple); border:1.5px solid var(--purple); border-radius:20px; padding:6px 20px;">x4</div>` }
+  ]
+};
+let onbIndex = 0;
+function currentOnbSteps(){ return ONB_STEPS[state.grade]; }
+function renderOnbStep(){
+  const steps = currentOnbSteps();
+  const step = steps[onbIndex];
+  document.getElementById('onb-visual').innerHTML = step.visual();
+  document.getElementById('onb-title').textContent = step.title;
+  document.getElementById('onb-text').textContent = step.text;
+  const dotsWrap = document.getElementById('onb-dots');
+  dotsWrap.innerHTML = '';
+  steps.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===onbIndex ? ' active' : '');
+    dotsWrap.appendChild(d);
+  });
+  document.getElementById('onb-prev').style.visibility = onbIndex===0 ? 'hidden' : 'visible';
+  document.getElementById('onb-next').textContent = onbIndex===steps.length-1 ? 'В бой!' : 'Далее';
+}
+function onbNext(){ const s=currentOnbSteps(); if(onbIndex<s.length-1){onbIndex++; renderOnbStep();} else { startBattle(); } }
+function onbPrev(){ if(onbIndex>0){onbIndex--; renderOnbStep();} }
+
+/* =========================================================
+   SCREEN NAV
+   ========================================================= */
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function chooseGrade(grade){ state.grade=grade; onbIndex=0; renderOnbStep(); showScreen('screen-onboarding'); }
+function goToStart(){ showScreen('screen-start'); }
+function restartSameGrade(){ startBattle(); }
+
+/* =========================================================
+   SEQUENCE HELPER — без соседних повторов, зацикливается
+   ========================================================= */
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+function nextFromPool(pool){
+  if(state.seqIndex >= state.seq.length){
+    let batch = shuffle(pool);
+    if(state.seq.length && batch[0] === state.seq[state.seq.length-1] && batch.length>1){
+      [batch[0], batch[1]] = [batch[1], batch[0]];
+    }
+    state.seq = state.seq.concat(batch);
+  }
+  return state.seq[state.seqIndex++];
+}
+
+/* =========================================================
+   BATTLE FLOW
+   ========================================================= */
+function startBattle(){
+  const cfg = BOSS_CONFIG[state.grade];
+  state.hp = cfg.hpMax;
+  state.combo = 1;
+  state.comboStreak = 0;
+  state.seq = [];
+  state.seqIndex = 0;
+  document.getElementById('combo-badge').classList.toggle('show', !!cfg.combo);
+  updateBossVisual();
+  updateHpBar(cfg);
+  loadNextTarget(cfg);
+  showScreen('screen-game');
+}
+
+function updateHpBar(cfg){
+  const pct = Math.max(0, Math.round((state.hp/cfg.hpMax)*100));
+  document.getElementById('hp-fill').style.width = pct + '%';
+  document.getElementById('hp-percent').textContent = pct + '%';
+  document.getElementById('combo-badge').textContent = 'x' + state.combo;
+}
+
+function bossStage(cfg){
+  const pct = state.hp/cfg.hpMax;
+  if(pct > 0.66) return 1;
+  if(pct > 0.33) return 2;
+  return 3;
+}
+function updateBossVisual(){
+  const cfg = BOSS_CONFIG[state.grade];
+  document.getElementById('boss-svg-wrap').innerHTML = bossSVG(bossStage(cfg));
+}
+
+function renderMiniKeyboard(cfg){
+  const wrap = document.getElementById('mini-keyboard');
+  if(!cfg.showKeyboard){ wrap.innerHTML = ''; return; }
+  const target = state.currentTarget[state.typedIndex];
+  const rows = [
+    { letters: RU_ROW1, cls:'row1' },
+    { letters: RU_ROW2, cls:'row2' },
+    { letters: RU_ROW3, cls:'row3' }
+  ];
+  wrap.innerHTML = '';
+  rows.forEach(rowDef => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'mk-row ' + rowDef.cls;
+    rowDef.letters.forEach(letter => {
+      const k = document.createElement('div');
+      k.className = 'mk-key' + (letter === target ? ' target' : '');
+      k.textContent = letter;
+      rowEl.appendChild(k);
+    });
+    wrap.appendChild(rowEl);
+  });
+}
+
+function loadNextTarget(cfg){
+  state.typedIndex = 0;
+  state.mistakeInAttempt = false;
+  document.getElementById('feedback-line').textContent = '';
+
+  if(cfg.mode === 'word'){
+    const pool = cfg.pool === 'junior' ? JUNIOR_BOSS_WORDS : BOSS_WORDS;
+    state.currentTarget = nextFromPool(pool);
+    document.getElementById('target-hint').textContent = cfg.showKeyboard ? 'Печатай по буквам — клавиатура подскажет' : 'Печатай по буквам';
+  } else {
+    state.currentTarget = nextFromPool(BOSS_PHRASES);
+    document.getElementById('target-hint').textContent = 'Печатай целиком, без ошибок';
+  }
+  renderTargetText();
+  renderMiniKeyboard(cfg);
+}
+
+function renderTargetText(){
+  const base = state.currentTarget;
+  const typedPart = base.slice(0, state.typedIndex);
+  const pendingPart = base.slice(state.typedIndex);
+  document.getElementById('target-text').innerHTML = `<span class="typed">${typedPart}</span><span class="pending">${pendingPart}</span>`;
+}
+
+function showDamageFloat(amount){
+  const zone = document.querySelector('.boss-zone');
+  const el = document.createElement('div');
+  el.className = 'dmg-float';
+  el.textContent = '-' + amount;
+  zone.appendChild(el);
+  setTimeout(()=>el.remove(), 700);
+}
+
+function applyDamage(amount, cfg){
+  state.hp = Math.max(0, state.hp - amount);
+  showDamageFloat(amount);
+  updateHpBar(cfg);
+  updateBossVisual();
+
+  const arena = document.getElementById('arena');
+  arena.classList.add('shake');
+  setTimeout(()=>arena.classList.remove('shake'), 250);
+
+  if(state.hp <= 0){
+    setTimeout(() => showVictory(), 500);
+  }
+}
+
+function showVictory(){
+  showScreen('screen-victory');
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+window.addEventListener('keydown', (e) => {
+  const gameVisible = document.getElementById('screen-game').classList.contains('active');
+  if(!gameVisible) return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+
+  const cfg = BOSS_CONFIG[state.grade];
+  if(state.hp <= 0) return;
+
+  if(cfg.mode === 'word'){
+    if(e.key.length !== 1) return;
+    const typedChar = e.key.toUpperCase();
+    const targetChar = state.currentTarget[state.typedIndex];
+    if(typedChar === targetChar){
+      state.typedIndex++;
+      renderTargetText();
+      if(cfg.showKeyboard) renderMiniKeyboard(cfg);
+      if(state.typedIndex >= state.currentTarget.length){
+        applyDamage(cfg.dmgPerWord, cfg);
+        if(state.hp > 0){ setTimeout(() => loadNextTarget(cfg), 450); }
+      }
+    }
+    // неверная буква — просто игнорируем, без штрафа
+    return;
+  }
+
+  if(cfg.mode === 'phrase'){
+    if(e.key === 'Backspace'){ return; } // фразы без глюков, бэкспейс тут не нужен
+    if(e.key.length !== 1) return;
+    const typedChar = e.key.toUpperCase();
+    const targetChar = state.currentTarget[state.typedIndex];
+    if(typedChar === targetChar){
+      state.typedIndex++;
+      renderTargetText();
+      if(state.typedIndex >= state.currentTarget.length){
+        let gained = cfg.dmgBase;
+        if(!state.mistakeInAttempt){
+          state.comboStreak++;
+          state.combo = Math.min(4, 1 + Math.floor(state.comboStreak/2));
+        } else {
+          state.comboStreak = 0;
+          state.combo = 1;
+        }
+        gained = gained * state.combo;
+        applyDamage(gained, cfg);
+        if(state.hp > 0){ setTimeout(() => loadNextTarget(cfg), 450); }
+      }
+    } else {
+      state.mistakeInAttempt = true;
+      state.comboStreak = 0;
+      state.combo = 1;
+      updateHpBar(cfg);
+      state.typedIndex = 0;
+      renderTargetText();
+      document.getElementById('feedback-line').style.color = 'var(--boss-red)';
+      document.getElementById('feedback-line').textContent = 'Не то — начни фразу заново';
+      const arena = document.getElementById('arena');
+      arena.classList.add('shake');
+      setTimeout(()=>arena.classList.remove('shake'), 250);
+    }
+  }
+});
+</script>
+</body>
+</html>
