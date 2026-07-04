@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кибер-Кот: путь через Лабораторию</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0a12;
+    --bg-1:#12111c;
+    --bg-2:#1a1826;
+    --panel-border:#332f47;
+    --violet:#a06bf0;
+    --violet-light:#c79bff;
+    --cyan:#4de8ff;
+    --green:#5de0a8;
+    --amber:#fac775;
+    --red:#ff5566;
+    --text-0:#f0ecf7;
+    --text-1:#a99fc0;
+    --text-2:#6e6584;
+    --font-head:'Orbitron', sans-serif;
+    --font-body:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #1e1830 0%, var(--bg-0) 60%);
+    color:var(--text-0);
+    font-family:var(--font-body);
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .app{
+    width:100%; max-width:900px;
+    background:var(--bg-1);
+    border:1px solid var(--panel-border);
+    border-radius:20px;
+    padding:28px;
+    position:relative;
+    box-shadow:0 0 0 1px rgba(160,107,240,0.06), 0 30px 60px rgba(0,0,0,0.5);
+  }
+  .screen{display:none;}
+  .screen.active{display:block; animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  h1.title{ font-family:var(--font-head); font-size:26px; font-weight:800; letter-spacing:0.5px; text-align:center; color:var(--text-0); text-shadow:0 0 18px rgba(160,107,240,0.35); }
+  .subtitle{ text-align:center; color:var(--text-1); font-size:14px; margin-top:8px; margin-bottom:26px; line-height:1.5; }
+
+  .grade-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px; }
+  .grade-card{ background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:16px; padding:18px 16px; text-align:center; cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+  .grade-card:hover{ transform:translateY(-3px); border-color:var(--violet); }
+  .grade-card .emoji{font-size:34px; display:block; margin-bottom:8px;}
+  .grade-card h3{font-family:var(--font-head); font-size:15px; color:var(--text-0); margin-bottom:6px;}
+  .grade-card p{font-size:12.5px; color:var(--text-1); line-height:1.5; margin-bottom:14px; min-height:52px;}
+
+  .btn{ font-family:var(--font-body); font-weight:600; font-size:14px; color:var(--bg-0); background:var(--violet); border:none; border-radius:10px; padding:11px 18px; cursor:pointer; transition:box-shadow .15s ease, transform .1s ease; width:100%; }
+  .btn:hover{ box-shadow:0 0 18px rgba(160,107,240,0.5); }
+  .btn:active{ transform:scale(0.97); }
+  .btn.secondary{ background:transparent; color:var(--text-0); border:1.5px solid var(--panel-border); width:auto; }
+  .btn.ghost{ background:transparent; color:var(--text-1); border:none; text-decoration:underline; padding:6px; width:auto; }
+
+  .onb-box{ background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:16px; padding:26px 20px; text-align:center; }
+  .onb-visual{ min-height:120px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; gap:14px; flex-wrap:wrap; }
+  .onb-title{ font-family:var(--font-head); font-size:17px; margin-bottom:10px; color:var(--text-0); }
+  .onb-text{ font-size:14px; color:var(--text-1); line-height:1.6; max-width:440px; margin:0 auto; }
+  .onb-dots{ display:flex; justify-content:center; gap:6px; margin:18px 0; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--panel-border); }
+  .dot.active{ background:var(--violet); }
+  .onb-nav{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:10px; }
+  .onb-nav .btn{ width:auto; }
+
+  .hud{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:14px; padding:12px 16px; margin-bottom:14px; flex-wrap:wrap; }
+  .hud-label{ font-size:10.5px; color:var(--text-2); text-transform:uppercase; letter-spacing:0.5px; }
+  .hud-score{ font-family:var(--font-head); font-size:19px; color:var(--text-0); }
+  .shield-pips{ display:flex; gap:3px; }
+  .pip{ width:14px; height:14px; border-radius:50%; background:var(--violet); }
+  .pip.lost{ background:var(--bg-0); border:1.5px solid var(--panel-border); }
+  .hud-station{ font-size:12px; color:var(--text-1); }
+  .combo-badge{ background:var(--bg-0); border:1.5px solid var(--violet); color:var(--violet); font-family:var(--font-head); font-size:12px; padding:4px 10px; border-radius:20px; opacity:0; transition:opacity .2s; }
+  .combo-badge.show{ opacity:1; }
+  .help-btn{ width:30px; height:30px; border-radius:50%; background:var(--bg-0); border:1.5px solid var(--panel-border); color:var(--text-1); font-family:var(--font-head); font-size:13px; cursor:pointer; }
+
+  .path-wrap{ position:relative; background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:18px; padding:20px; }
+  .path-wrap.shake{ animation:shakeErr .3s; }
+  @keyframes shakeErr{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
+
+  .game-inner{ max-width:640px; margin:0 auto; }
+
+  .track{ position:relative; height:70px; margin-bottom:26px; }
+  .track-line{ position:absolute; left:0; right:0; top:50%; height:3px; background:repeating-linear-gradient(90deg, var(--panel-border) 0 10px, transparent 10px 20px); transform:translateY(-50%); }
+  .station-dot{ position:absolute; top:50%; width:10px; height:10px; border-radius:50%; background:var(--panel-border); transform:translate(-50%,-50%); }
+  .station-dot.done{ background:var(--green); }
+  .station-dot.current{ background:var(--violet); box-shadow:0 0 10px var(--violet); }
+  .cat-token{ position:absolute; top:50%; width:56px; height:56px; transform:translate(-50%,-50%); transition:left .5s cubic-bezier(.34,1.4,.64,1); z-index:5; }
+
+  .obstacle-zone{ min-height:170px; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:14px; }
+  .obstacle-panel{
+    background:var(--bg-0); border:2px solid var(--violet); border-radius:16px;
+    padding:20px 30px; text-align:center; transition:transform .2s, opacity .2s;
+  }
+  .obstacle-panel.shatter{ transform:scale(1.3); opacity:0; }
+  .obstacle-text{ font-family:var(--font-head); font-size:28px; letter-spacing:3px; }
+  .obstacle-text .typed{ color:var(--green); }
+  .obstacle-text .pending{ color:var(--text-0); }
+  .obstacle-text .glitch{ color:var(--red); animation:glitchBlink .4s infinite; }
+  @keyframes glitchBlink{ 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+  .obstacle-hint{ font-size:12px; color:var(--text-2); }
+
+  .mini-keyboard{ display:flex; flex-direction:column; align-items:center; gap:6px; }
+  .mk-row{ display:flex; gap:5px; flex-wrap:nowrap; }
+  .mk-row.row2{ margin-left:16px; }
+  .mk-row.row3{ margin-left:34px; }
+  .mk-key{ min-width:30px; height:30px; padding:0 6px; border-radius:6px; background:var(--bg-0); border:1.5px solid var(--panel-border); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--text-2); font-family:var(--font-head); flex-shrink:0; }
+  .mk-key.target{ border-color:var(--cyan); color:var(--text-0); box-shadow:0 0 10px rgba(77,232,255,0.4); }
+
+  .feedback-line{ font-family:var(--font-head); font-size:14px; min-height:20px; color:var(--text-1); text-align:center; }
+
+  .keycap-bp{
+    display:inline-block; padding:16px 38px; border-radius:12px;
+    background:var(--bg-0); border:2px solid var(--cyan);
+    font-family:var(--font-head); font-size:18px; color:var(--text-0);
+    animation:keycapPulse 1.1s infinite;
+  }
+  .keycap-bp.hit{ border-color:var(--green); color:var(--green); box-shadow:0 0 22px rgba(93,224,168,0.6); animation:none; }
+  @keyframes keycapPulse{ 0%,100%{ box-shadow:0 0 10px rgba(77,232,255,0.25);} 50%{ box-shadow:0 0 22px rgba(77,232,255,0.6);} }
+
+  .help-overlay{ position:absolute; inset:0; background:rgba(10,10,18,0.94); border-radius:18px; display:none; align-items:center; justify-content:center; z-index:60; padding:20px; }
+  .help-overlay.show{ display:flex; }
+  .help-card{ text-align:center; max-width:360px; }
+
+  .end-box{ text-align:center; background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:18px; padding:30px 22px; }
+  .end-reason{ color:var(--text-1); font-size:13px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;}
+  .end-score{ font-family:var(--font-head); font-size:44px; color:var(--violet); text-shadow:0 0 20px rgba(160,107,240,0.4); margin:8px 0 4px;}
+  .end-best{ font-size:13px; color:var(--text-2); margin-bottom:24px; }
+  .end-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SCREEN 1: START ============ -->
+  <div class="screen active" id="screen-start">
+    <h1 class="title">Кибер-Кот: путь через Лабораторию</h1>
+    <p class="subtitle">Печатай, чтобы разрушить панели-препятствия и провести Кота до конца пути.</p>
+    <div class="grade-grid">
+      <div class="grade-card" onclick="chooseGrade('junior')">
+        <span class="emoji">🐣</span>
+        <h3>Junior</h3>
+        <p>6 препятствий, по одной букве, подсказка на клавиатуре, ошибок не бывает.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('middle')">
+        <span class="emoji">🐾</span>
+        <h3>Middle</h3>
+        <p>9 препятствий, короткие слова, иногда "глюк" на конце — почини Backspace.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('senior')">
+        <span class="emoji">⚡</span>
+        <h3>Senior</h3>
+        <p>12 препятствий, целые фразы-промпты, щит и комбо-множитель.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2: ONBOARDING ============ -->
+  <div class="screen" id="screen-onboarding">
+    <h1 class="title" style="font-size:20px;">Протокол пути</h1>
+    <div class="onb-box" style="margin-top:20px;">
+      <div class="onb-visual" id="onb-visual"></div>
+      <div class="onb-title" id="onb-title"></div>
+      <div class="onb-text" id="onb-text"></div>
+    </div>
+    <div class="onb-dots" id="onb-dots"></div>
+    <div class="onb-nav">
+      <button class="btn ghost" onclick="onbPrev()" id="onb-prev">Назад</button>
+      <button class="btn" style="width:auto;" onclick="onbNext()" id="onb-next">Далее</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2.5: BACKSPACE PRACTICE ============ -->
+  <div class="screen" id="screen-bp-practice">
+    <h1 class="title" style="font-size:20px;">Найди клавишу Backspace</h1>
+    <p class="subtitle">Скоро на некоторых панелях появится "глюк" — лишний символ на конце. Его стирают клавишей Backspace. Найди её на клавиатуре и нажми.</p>
+    <div class="onb-box" style="margin-top:20px; text-align:center;">
+      <div class="keycap-bp" id="keycap-bp">Backspace</div>
+      <div class="feedback-line" id="bp-feedback" style="margin-top:18px;"></div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3: GAME ============ -->
+  <div class="screen" id="screen-game">
+    <div class="hud">
+      <div><div class="hud-label">Счёт</div><div class="hud-score" id="hud-score">0</div></div>
+      <div id="hud-shield-block"><div class="hud-label">Щит</div><div class="shield-pips" id="hud-shield"></div></div>
+      <div><div class="hud-label">Станция</div><div class="hud-station" id="hud-station">1 / 6</div></div>
+      <div class="combo-badge" id="combo-badge">x1</div>
+      <button class="help-btn" id="kb-toggle-btn" onclick="toggleKeyboard()" title="Показать/скрыть клавиатуру">⌨</button>
+      <button class="help-btn" onclick="openHelp()" title="Напоминалка">?</button>
+    </div>
+
+    <div class="path-wrap" id="path-wrap">
+      <div class="game-inner">
+        <div class="track" id="track">
+          <div class="track-line"></div>
+          <div class="cat-token" id="cat-token"></div>
+        </div>
+
+        <div class="obstacle-zone">
+          <div class="obstacle-panel" id="obstacle-panel">
+            <div class="obstacle-text" id="obstacle-text"></div>
+            <div class="obstacle-hint" id="obstacle-hint"></div>
+          </div>
+          <div class="mini-keyboard" id="mini-keyboard"></div>
+          <div class="feedback-line" id="feedback-line"></div>
+        </div>
+      </div>
+
+      <div class="help-overlay" id="help-overlay">
+        <div class="help-card">
+          <div class="onb-title" style="font-size:15px;">Напоминалка</div>
+          <div class="onb-text" style="font-size:13px;">Печатай буквы препятствия по порядку. Если на конце появился глюк — сотри его клавишей Backspace.</div>
+          <button class="btn" style="margin-top:16px; width:auto;" onclick="closeHelp()">Понятно, погнали</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 4: END ============ -->
+  <div class="screen" id="screen-end">
+    <div class="end-box">
+      <div class="end-reason" id="end-reason">Путь пройден</div>
+      <div class="end-score" id="end-score">0</div>
+      <div class="end-best" id="end-best">Лучший результат сессии: 0</div>
+      <div class="end-actions">
+        <button class="btn" style="width:auto;" onclick="restartSameGrade()">Играть снова</button>
+        <button class="btn secondary" onclick="goToStart()">Выбрать другой грейд</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const GRADE_CONFIG = {
+  junior: {
+    stations:6, unit:'word', showKeyboard:true, showLetterHint:true,
+    hasShield:false, combo:false, glitchChance:0, baseScore:10
+  },
+  middle: {
+    stations:9, unit:'word', showKeyboard:false, showLetterHint:true,
+    hasShield:false, combo:false, glitchChance:0.3, baseScore:15
+  },
+  senior: {
+    stations:12, unit:'phrase', showKeyboard:false, showLetterHint:false,
+    hasShield:true, shieldMax:3, combo:true, glitchChance:0.35, glitchDoubleChance:0.2, baseScore:20
+  }
+};
+
+const JUNIOR_TIER1 = ['ИИ','БОТ','АРТ','КОД','ЧАТ'];
+const JUNIOR_TIER2 = ['ТЕКСТ','ПРОМПТ','НЕЙРОН','МОДЕЛЬ','РОБОТ'];
+const JUNIOR_TIER3 = ['АЛГОРИТМ','ИНТЕРФЕЙС','КОМПЬЮТЕР','НЕЙРОСЕТЬ','ГЕНЕРАЦИЯ'];
+const JUNIOR_TIERS = [JUNIOR_TIER1, JUNIOR_TIER2, JUNIOR_TIER3];
+
+function shuffle(arr){
+  const a = arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+
+function buildJuniorSequence(count){
+  const groups = JUNIOR_TIERS.map(t => shuffle(t));
+  const perGroup = Math.ceil(count / groups.length);
+  const seq = [];
+  for(let g=0; g<groups.length; g++){
+    for(let k=0; k<perGroup && seq.length<count; k++){
+      seq.push(groups[g][k % groups[g].length]);
+    }
+  }
+  return seq.slice(0, count);
+}
+
+function buildNoRepeatSequence(pool, count){
+  let seq = [];
+  while(seq.length < count){
+    let batch = shuffle(pool);
+    if(seq.length > 0 && batch[0] === seq[seq.length - 1] && batch.length > 1){
+      [batch[0], batch[1]] = [batch[1], batch[0]];
+    }
+    seq = seq.concat(batch);
+  }
+  return seq.slice(0, count);
+}
+
+const LETTER_POOL = ['А','К','О','Т','М','С','Р','Н','Л','Е','И','П'];
+const WORD_POOL = [
+  'ЛАПА','ЧИП','КОД','ДРУГ','СВЕТ','ИСКРА','ЛУЧ','ЗВУК','ПУЛЬТ',
+  'ЭКРАН','ТОКЕН','ФАЙЛ','ПАПКА','ДРОН','СИГНАЛ','БАЙТ','СКРИПТ',
+  'ВЕКТОР','СЕРВЕР','ОБЛАКО','ПИКСЕЛЬ','ПРОЦЕСС','ФУНКЦИЯ','ДАТАСЕТ'
+];
+const PHRASE_POOL = [
+  'ВКЛЮЧИ СВЕТ','ОТКРОЙ ФАЙЛ','ЗАПУСТИ ИИ','НАЙДИ БАГ','СОЗДАЙ АРТ',
+  'ПОЧИНИ КОД','НАПИШИ ПРОМПТ','ОБУЧИ МОДЕЛЬ','ЗАГРУЗИ ДАННЫЕ',
+  'СОХРАНИ ПРОЕКТ','ПРОВЕРЬ СКРИПТ','УДАЛИ ОШИБКУ','ЗАПУСТИ СКРИПТ',
+  'АКТИВИРУЙ ДРОНА','СГЕНЕРИРУЙ ТЕКСТ','ОБНОВИ СИСТЕМУ'
+];
+const GLITCH_CHARS = ['#','~','%','&'];
+const RU_ROW1 = 'ЙЦУКЕНГШЩЗХЪ'.split('');
+const RU_ROW2 = 'ФЫВАПРОЛДЖЭ'.split('');
+const RU_ROW3 = 'ЯЧСМИТЬБЮ'.split('');
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = {
+  grade:'junior', score:0, station:0, shield:3, combo:1, comboStreak:0,
+  bestScore:0, paused:false,
+  currentBase:'', currentGlitch:'', typedIndex:0, glitchRemaining:0,
+  mistakeThisObstacle:false
+};
+
+/* =========================================================
+   CAT SVG (палитра с рефа: лиловый + графит)
+   ========================================================= */
+function catSVG(mood){
+  const glow = mood === 'success' ? '#5de0a8' : (mood === 'fail' ? '#ff5566' : '#a06bf0');
+  return `<svg width="56" height="56" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <path d="M28 18 L40 42 L18 46 Z" fill="#8a5fc9" stroke="#4a2f78" stroke-width="1.5"/>
+    <path d="M72 18 L60 42 L82 46 Z" fill="#8a5fc9" stroke="#4a2f78" stroke-width="1.5"/>
+    <ellipse cx="50" cy="55" rx="34" ry="30" fill="#9b74d6"/>
+    <circle cx="40" cy="52" r="6" fill="#2a1f3d"/><circle cx="40" cy="52" r="2.5" fill="${glow}"/>
+    <circle cx="60" cy="52" r="6" fill="#2a1f3d"/><circle cx="60" cy="52" r="2.5" fill="${glow}"/>
+    <ellipse cx="50" cy="66" rx="4" ry="3" fill="#2a2a2a"/>
+    <path d="M40 70 Q50 76 60 70" stroke="#4a3a5a" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <line x1="25" y1="60" x2="10" y2="58" stroke="#c9c9c9" stroke-width="1"/>
+    <line x1="75" y1="60" x2="90" y2="58" stroke="#c9c9c9" stroke-width="1"/>
+  </svg>`;
+}
+
+/* =========================================================
+   ONBOARDING
+   ========================================================= */
+const ONB_STEPS = {
+  junior: [
+    { title:'Знакомься, это твой Кот', text:'Кибер-Кот идёт по Лаборатории. Впереди него — светящиеся панели. Печатай букву на панели — она разрушится, и Кот шагнёт дальше.', visual:() => catSVG('idle') },
+    { title:'Клавиатура подскажет', text:'Внизу экрана — маленькая клавиатура. Нужная буква всегда подсвечена циановым — просто найди её и нажми.', visual:() => `<div style="font-family:var(--font-head); color:var(--cyan); border:2px solid var(--cyan); border-radius:8px; padding:6px 14px;">А</div>` },
+    { title:'Ошибиться нельзя — и не страшно', text:'Если нажал не ту клавишу — просто ничего не происходит. Пробуй снова, штрафов тут нет.', visual:() => `<span style="font-size:36px;">😺</span>` }
+  ],
+  middle: [
+    { title:'Теперь целые слова', text:'На панели — короткое слово из мира Лаборатории. Печатай буквы по порядку, следующая нужная буква подсвечена прямо в слове.', visual:() => `<div class="obstacle-text" style="font-size:22px;"><span class="typed">ЛА</span><span class="pending">ПА</span></div>` },
+    { title:'Осторожно, глюк на конце', text:'Иногда после слова появляется лишний символ (например #). Сотри его клавишей Backspace, прежде чем панель разрушится.', visual:() => `<div class="obstacle-text" style="font-size:22px;"><span class="typed">ЧИП</span><span class="glitch">#</span></div>` },
+    { title:'Ошибка — лёгкая тряска', text:'Промахнулся — панель просто вздрогнёт. Прогресс внутри слова не сбрасывается, пробуй ту же букву снова.', visual:() => `<span style="font-size:36px;">〜</span>` }
+  ],
+  senior: [
+    { title:'Финальный протокол: целые фразы', text:'На панели — мини-команда для ИИ, например "ВКЛЮЧИ СВЕТ". Печатай её целиком, подсказок больше нет.', visual:() => `<div style="font-family:var(--font-head); font-size:18px;">ВКЛЮЧИ СВЕТ</div>` },
+    { title:'Щит и комбо', text:'У тебя 3 деления щита. Ошибка снимает деление и сбрасывает комбо. Пройди подряд без ошибок — множитель очков растёт до x4.', visual:() => `<div style="display:flex; gap:8px; align-items:center;"><div class="shield-pips"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div><div style="font-family:var(--font-head); color:var(--violet); border:1.5px solid var(--violet); border-radius:16px; padding:4px 14px;">x4</div></div>` },
+    { title:'Если щит закончился', text:'Панель разрушится сама, но без очков за неё — застревать на месте ты не будешь, щит восстановится к следующей станции.', visual:() => `<span style="font-size:36px;">🛡️</span>` }
+  ]
+};
+let onbIndex = 0;
+function currentOnbSteps(){ return ONB_STEPS[state.grade]; }
+function renderOnbStep(){
+  const steps = currentOnbSteps();
+  const step = steps[onbIndex];
+  document.getElementById('onb-visual').innerHTML = step.visual();
+  document.getElementById('onb-title').textContent = step.title;
+  document.getElementById('onb-text').textContent = step.text;
+  const dotsWrap = document.getElementById('onb-dots');
+  dotsWrap.innerHTML = '';
+  steps.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===onbIndex ? ' active' : '');
+    dotsWrap.appendChild(d);
+  });
+  document.getElementById('onb-prev').style.visibility = onbIndex===0 ? 'hidden' : 'visible';
+  document.getElementById('onb-next').textContent = onbIndex===steps.length-1 ? 'Погнали!' : 'Далее';
+}
+function onbNext(){
+  const s=currentOnbSteps();
+  if(onbIndex<s.length-1){ onbIndex++; renderOnbStep(); }
+  else {
+    const cfg = GRADE_CONFIG[state.grade];
+    if(cfg.glitchChance > 0){ startBackspacePractice(); }
+    else { startGame(); }
+  }
+}
+function onbPrev(){ if(onbIndex>0){onbIndex--; renderOnbStep();} }
+
+/* =========================================================
+   SCREEN NAV
+   ========================================================= */
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function chooseGrade(grade){ state.grade=grade; onbIndex=0; renderOnbStep(); showScreen('screen-onboarding'); }
+function goToStart(){ showScreen('screen-start'); }
+
+/* =========================================================
+   BACKSPACE PRACTICE — живая тренировка перед первым "глюком"
+   ========================================================= */
+function startBackspacePractice(){
+  document.getElementById('keycap-bp').className = 'keycap-bp';
+  document.getElementById('bp-feedback').textContent = '';
+  showScreen('screen-bp-practice');
+}
+
+/* =========================================================
+   GAME FLOW
+   ========================================================= */
+function startGame(){
+  const cfg = GRADE_CONFIG[state.grade];
+  Object.assign(state, {
+    score:0, station:0, shield:cfg.shieldMax||3, combo:1, comboStreak:0, paused:false,
+    keyboardVisible:true
+  });
+  if(state.grade === 'junior'){
+    state.juniorSequence = buildJuniorSequence(cfg.stations);
+  } else if(state.grade === 'middle'){
+    state.middleSequence = buildNoRepeatSequence(WORD_POOL, cfg.stations);
+  } else if(state.grade === 'senior'){
+    state.seniorSequence = buildNoRepeatSequence(PHRASE_POOL, cfg.stations);
+  }
+  document.getElementById('hud-shield-block').style.display = cfg.hasShield ? 'block' : 'none';
+  document.getElementById('combo-badge').classList.toggle('show', !!cfg.combo);
+  document.getElementById('kb-toggle-btn').style.display = cfg.showKeyboard ? 'inline-flex' : 'none';
+  buildTrack(cfg);
+  updateHUD(cfg);
+  showScreen('screen-game');
+  loadObstacle(cfg);
+}
+function restartSameGrade(){ startGame(); }
+
+function buildTrack(cfg){
+  const track = document.getElementById('track');
+  track.querySelectorAll('.station-dot').forEach(d=>d.remove());
+  for(let i=0;i<cfg.stations;i++){
+    const dot = document.createElement('div');
+    dot.className = 'station-dot';
+    dot.style.left = (5 + (i/(cfg.stations-1))*90) + '%';
+    dot.dataset.index = i;
+    track.insertBefore(dot, document.getElementById('cat-token'));
+  }
+  moveCatToStation(0);
+}
+function moveCatToStation(index){
+  const cfg = GRADE_CONFIG[state.grade];
+  const pct = 5 + (index/(cfg.stations-1))*90;
+  const cat = document.getElementById('cat-token');
+  cat.style.left = pct + '%';
+  cat.innerHTML = catSVG('idle');
+  document.querySelectorAll('.station-dot').forEach(d => {
+    const i = Number(d.dataset.index);
+    d.className = 'station-dot' + (i < index ? ' done' : (i === index ? ' current' : ''));
+  });
+}
+
+function updateHUD(cfg){
+  document.getElementById('hud-score').textContent = state.score;
+  document.getElementById('hud-station').textContent = Math.min(state.station+1, cfg.stations) + ' / ' + cfg.stations;
+  const shieldWrap = document.getElementById('hud-shield');
+  shieldWrap.innerHTML = '';
+  const max = cfg.shieldMax || 3;
+  for(let i=0;i<max;i++){
+    const p = document.createElement('div');
+    p.className = 'pip' + (i < state.shield ? '' : ' lost');
+    shieldWrap.appendChild(p);
+  }
+  document.getElementById('combo-badge').textContent = 'x' + state.combo;
+}
+
+function pickContent(cfg){
+  if(state.grade === 'junior') return state.juniorSequence[state.station];
+  if(state.grade === 'middle') return state.middleSequence[state.station];
+  if(state.grade === 'senior') return state.seniorSequence[state.station];
+  return cfg.unit === 'word' ? WORD_POOL[0] : PHRASE_POOL[0];
+}
+
+function loadObstacle(cfg){
+  state.currentBase = pickContent(cfg);
+  state.typedIndex = 0;
+  state.mistakeThisObstacle = false;
+
+  let glitchLen = 0;
+  const chance = cfg.glitchChance || 0;
+  if(Math.random() < chance){
+    glitchLen = 1;
+    if(cfg.glitchDoubleChance && Math.random() < cfg.glitchDoubleChance) glitchLen = 2;
+  }
+  state.currentGlitch = Array.from({length:glitchLen}, () => GLITCH_CHARS[Math.floor(Math.random()*GLITCH_CHARS.length)]).join('');
+  state.glitchRemaining = glitchLen;
+
+  document.getElementById('feedback-line').textContent = '';
+  document.getElementById('obstacle-panel').classList.remove('shatter');
+  renderObstacleText(cfg);
+  renderMiniKeyboard(cfg);
+}
+
+function renderObstacleText(cfg){
+  const base = state.currentBase;
+  const typedPart = base.slice(0, state.typedIndex);
+  const pendingPart = base.slice(state.typedIndex);
+  let html = `<span class="typed">${typedPart}</span><span class="pending">${pendingPart}</span>`;
+  if(state.typedIndex >= base.length && state.glitchRemaining > 0){
+    html += `<span class="glitch">${state.currentGlitch.slice(0, state.glitchRemaining)}</span>`;
+  }
+  document.getElementById('obstacle-text').innerHTML = html;
+
+  const hint = document.getElementById('obstacle-hint');
+  if(state.typedIndex >= base.length && state.glitchRemaining > 0){
+    hint.textContent = 'Сотри глюк клавишей Backspace';
+  } else if(cfg.unit !== 'letter' && cfg.showLetterHint){
+    hint.textContent = 'Печатай по букве';
+  } else {
+    hint.textContent = '';
+  }
+}
+
+function toggleKeyboard(){
+  state.keyboardVisible = !state.keyboardVisible;
+  renderMiniKeyboard(GRADE_CONFIG[state.grade]);
+}
+
+function renderMiniKeyboard(cfg){
+  const wrap = document.getElementById('mini-keyboard');
+  if(!cfg.showKeyboard || !state.keyboardVisible){ wrap.innerHTML = ''; return; }
+  const target = state.currentBase[state.typedIndex];
+  const rows = [
+    { letters: RU_ROW1, cls:'row1' },
+    { letters: RU_ROW2, cls:'row2' },
+    { letters: RU_ROW3, cls:'row3' }
+  ];
+  wrap.innerHTML = '';
+  rows.forEach(rowDef => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'mk-row ' + rowDef.cls;
+    rowDef.letters.forEach(letter => {
+      const k = document.createElement('div');
+      k.className = 'mk-key' + (letter === target ? ' target' : '');
+      k.textContent = letter;
+      rowEl.appendChild(k);
+    });
+    wrap.appendChild(rowEl);
+  });
+}
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+window.addEventListener('keydown', (e) => {
+  const practiceVisible = document.getElementById('screen-bp-practice').classList.contains('active');
+  if(practiceVisible){
+    if(e.key === 'Backspace'){
+      e.preventDefault();
+      document.getElementById('keycap-bp').classList.add('hit');
+      const fb = document.getElementById('bp-feedback');
+      fb.style.color = 'var(--green)';
+      fb.textContent = 'Принято! Погнали в игру';
+      setTimeout(() => startGame(), 900);
+    }
+    return;
+  }
+
+  const gameVisible = document.getElementById('screen-game').classList.contains('active');
+  if(!gameVisible || state.paused) return;
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+
+  const cfg = GRADE_CONFIG[state.grade];
+
+  if(e.key === 'Backspace'){
+    e.preventDefault();
+    if(state.typedIndex >= state.currentBase.length && state.glitchRemaining > 0){
+      state.glitchRemaining--;
+      renderObstacleText(cfg);
+      if(state.glitchRemaining === 0 && state.typedIndex >= state.currentBase.length){
+        clearObstacle(cfg, true);
+      }
+    }
+    return;
+  }
+
+  if(e.key.length !== 1) return;
+  const typedChar = e.key.toUpperCase();
+  const targetChar = state.currentBase[state.typedIndex];
+  if(state.typedIndex >= state.currentBase.length) return; // ждём Backspace на глюк
+
+  if(typedChar === targetChar){
+    state.typedIndex++;
+    renderObstacleText(cfg);
+    if(cfg.showKeyboard) renderMiniKeyboard(cfg);
+    if(state.typedIndex >= state.currentBase.length && state.glitchRemaining === 0){
+      clearObstacle(cfg, true);
+    }
+  } else {
+    handleMistake(cfg);
+  }
+});
+
+function handleMistake(cfg){
+  state.mistakeThisObstacle = true;
+  const pathWrap = document.getElementById('path-wrap');
+
+  if(cfg.combo){ state.combo = 1; state.comboStreak = 0; }
+
+  if(!cfg.hasShield){
+    pathWrap.classList.add('shake');
+    setTimeout(()=>pathWrap.classList.remove('shake'), 300);
+  } else {
+    state.shield--;
+    pathWrap.classList.add('shake');
+    setTimeout(()=>pathWrap.classList.remove('shake'), 300);
+    if(state.shield <= 0){
+      clearObstacle(GRADE_CONFIG[state.grade], false);
+      return;
+    }
+  }
+  updateHUD(cfg);
+}
+
+function clearObstacle(cfg, scored){
+  let gained = 0;
+  if(scored){
+    gained = cfg.baseScore;
+    if(cfg.combo && !state.mistakeThisObstacle){
+      state.comboStreak++;
+      state.combo = Math.min(4, 1 + Math.floor(state.comboStreak/3));
+      gained = gained * state.combo;
+    } else if(cfg.combo){
+      state.comboStreak = 0;
+      state.combo = 1;
+    }
+    state.score += gained;
+    document.getElementById('feedback-line').style.color = 'var(--green)';
+    document.getElementById('feedback-line').textContent = '+' + gained;
+  } else {
+    document.getElementById('feedback-line').style.color = 'var(--red)';
+    document.getElementById('feedback-line').textContent = 'Щит разряжен — идём дальше без очков';
+  }
+
+  document.getElementById('obstacle-panel').classList.add('shatter');
+  if(cfg.hasShield) state.shield = cfg.shieldMax;
+  updateHUD(cfg);
+
+  const cat = document.getElementById('cat-token');
+  cat.innerHTML = catSVG(scored ? 'success' : 'fail');
+
+  setTimeout(() => {
+    state.station++;
+    updateHUD(cfg);
+    if(state.station >= cfg.stations){
+      endGame();
+      return;
+    }
+    moveCatToStation(state.station);
+    setTimeout(() => loadObstacle(cfg), 400);
+  }, 500);
+}
+
+/* =========================================================
+   HELP
+   ========================================================= */
+function openHelp(){ state.paused = true; document.getElementById('help-overlay').classList.add('show'); }
+function closeHelp(){ state.paused = false; document.getElementById('help-overlay').classList.remove('show'); }
+
+/* =========================================================
+   END GAME
+   ========================================================= */
+function endGame(){
+  if(state.score > state.bestScore) state.bestScore = state.score;
+  document.getElementById('end-reason').textContent = 'Путь пройден';
+  document.getElementById('end-score').textContent = state.score;
+  document.getElementById('end-best').textContent = 'Лучший результат сессии: ' + state.bestScore;
+  showScreen('screen-end');
+}
+</script>
+</body>
+</html>

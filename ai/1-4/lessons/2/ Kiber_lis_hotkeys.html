@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кибер-Лис: протокол хоткеев</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#0a0a0d;
+    --bg-1:#141117;
+    --bg-2:#1c1720;
+    --panel-border:#3a2e28;
+    --copper:#e0692a;
+    --copper-light:#ff9b52;
+    --cyan:#4de8ff;
+    --purple:#8b7bf0;
+    --green:#5de0a8;
+    --amber:#fac775;
+    --red:#ff5566;
+    --text-0:#f5ece4;
+    --text-1:#b3a297;
+    --text-2:#7a6e66;
+    --font-head:'Orbitron', sans-serif;
+    --font-body:'Inter', sans-serif;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #241a15 0%, var(--bg-0) 60%);
+    color:var(--text-0);
+    font-family:var(--font-body);
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+  }
+  .app{
+    width:100%; max-width:900px;
+    background:var(--bg-1);
+    border:1px solid var(--panel-border);
+    border-radius:20px;
+    padding:28px;
+    position:relative;
+    box-shadow:0 0 0 1px rgba(224,105,42,0.06), 0 30px 60px rgba(0,0,0,0.5);
+  }
+  .screen{display:none;}
+  .screen.active{display:block; animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  h1.title{ font-family:var(--font-head); font-size:26px; font-weight:800; letter-spacing:0.5px; text-align:center; color:var(--text-0); text-shadow:0 0 18px rgba(224,105,42,0.35); }
+  .subtitle{ text-align:center; color:var(--text-1); font-size:14px; margin-top:8px; margin-bottom:26px; line-height:1.5; }
+
+  .grade-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(190px,1fr)); gap:14px; }
+  .grade-card{ background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:16px; padding:18px 16px; text-align:center; cursor:pointer; transition:transform .15s ease, border-color .15s ease; }
+  .grade-card:hover{ transform:translateY(-3px); border-color:var(--copper); }
+  .grade-card .emoji{font-size:34px; display:block; margin-bottom:8px;}
+  .grade-card h3{font-family:var(--font-head); font-size:15px; color:var(--text-0); margin-bottom:6px;}
+  .grade-card p{font-size:12.5px; color:var(--text-1); line-height:1.5; margin-bottom:14px; min-height:52px;}
+
+  .btn{ font-family:var(--font-body); font-weight:600; font-size:14px; color:var(--bg-0); background:var(--copper); border:none; border-radius:10px; padding:11px 18px; cursor:pointer; transition:box-shadow .15s ease, transform .1s ease; width:100%; }
+  .btn:hover{ box-shadow:0 0 18px rgba(224,105,42,0.5); }
+  .btn:active{ transform:scale(0.97); }
+  .btn.secondary{ background:transparent; color:var(--text-0); border:1.5px solid var(--panel-border); width:auto; }
+  .btn.ghost{ background:transparent; color:var(--text-1); border:none; text-decoration:underline; padding:6px; width:auto; }
+
+  .onb-box{ background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:16px; padding:26px 20px; text-align:center; }
+  .onb-visual{ min-height:120px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; gap:14px; flex-wrap:wrap; }
+  .onb-title{ font-family:var(--font-head); font-size:17px; margin-bottom:10px; color:var(--text-0); }
+  .onb-text{ font-size:14px; color:var(--text-1); line-height:1.6; max-width:420px; margin:0 auto; }
+  .onb-dots{ display:flex; justify-content:center; gap:6px; margin:18px 0; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--panel-border); }
+  .dot.active{ background:var(--copper); }
+  .onb-nav{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:10px; }
+  .onb-nav .btn{ width:auto; }
+
+  .practice-box{ background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:16px; padding:36px 20px; text-align:center; }
+  .practice-combo{ font-family:var(--font-head); font-size:22px; color:var(--text-1); margin-bottom:26px; }
+  .keycaps{ display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:26px; }
+  .keycap{
+    min-width:64px; height:56px; padding:0 14px;
+    border-radius:10px; background:var(--bg-0); border:2px solid var(--panel-border);
+    display:flex; align-items:center; justify-content:center;
+    font-family:var(--font-head); font-size:16px; color:var(--text-1);
+    transition:border-color .15s, box-shadow .15s, color .15s;
+  }
+  .keycap.target{ border-color:var(--cyan); color:var(--text-0); animation:keycapPulse 1.1s infinite; }
+  @keyframes keycapPulse{ 0%,100%{ box-shadow:0 0 10px rgba(77,232,255,0.25);} 50%{ box-shadow:0 0 22px rgba(77,232,255,0.6);} }
+  .keycap.hit{ border-color:var(--green); color:var(--green); box-shadow:0 0 22px rgba(93,224,168,0.6); animation:none; }
+  .keycap-plus{ font-family:var(--font-head); font-size:18px; color:var(--text-2); }
+  .practice-feedback{ font-family:var(--font-head); font-size:16px; min-height:24px; color:var(--text-1); }
+  .practice-progress{ display:flex; justify-content:center; gap:8px; margin-top:22px; }
+  .practice-dot{ width:9px; height:9px; border-radius:50%; background:var(--panel-border); }
+  .practice-dot.done{ background:var(--green); }
+  .practice-dot.current{ background:var(--cyan); }
+
+  .hud{ display:flex; align-items:center; justify-content:space-between; gap:10px; background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:14px; padding:12px 16px; margin-bottom:14px; flex-wrap:wrap; }
+  .hud-label{ font-size:10.5px; color:var(--text-2); text-transform:uppercase; letter-spacing:0.5px; }
+  .hud-score{ font-family:var(--font-head); font-size:19px; color:var(--text-0); }
+  .hearts{ display:flex; gap:3px; }
+  .heart{ font-size:16px; }
+  .heart.lost{ filter:grayscale(1) opacity(0.35); }
+  .hud-round{ font-size:12px; color:var(--text-1); }
+  .combo-badge{ background:var(--bg-0); border:1.5px solid var(--purple); color:var(--purple); font-family:var(--font-head); font-size:12px; padding:4px 10px; border-radius:20px; opacity:0; transition:opacity .2s; }
+  .combo-badge.show{ opacity:1; }
+  .help-btn{ width:30px; height:30px; border-radius:50%; background:var(--bg-0); border:1.5px solid var(--panel-border); color:var(--text-1); font-family:var(--font-head); font-size:13px; cursor:pointer; }
+  .help-btn:hover{ border-color:var(--copper); color:var(--copper); }
+
+  .legend{ display:flex; gap:14px; justify-content:center; font-size:12px; color:var(--text-1); margin-bottom:14px; flex-wrap:wrap; }
+  .legend span.k{ color:var(--text-0); font-weight:600; }
+
+  .arena{
+    position:relative; width:100%; height:520px;
+    background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:18px;
+    overflow:hidden;
+  }
+  .arena.shake{ animation:shakeErr .3s; }
+  @keyframes shakeErr{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-6px);} 75%{transform:translateX(6px);} }
+
+  .fox-core{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:190px; height:190px; border-radius:50%;
+    background:var(--bg-0); border:3px solid var(--panel-border);
+    display:flex; align-items:center; justify-content:center;
+    transition:border-color .15s, box-shadow .15s;
+    z-index:5;
+  }
+  .fox-core.state-active{ border-color:var(--cyan); box-shadow:0 0 30px rgba(77,232,255,0.3); }
+  .fox-core.state-success{ border-color:var(--green); box-shadow:0 0 34px rgba(93,224,168,0.5); }
+  .fox-core.state-fail{ border-color:var(--red); box-shadow:0 0 34px rgba(255,85,102,0.5); }
+  .fox-core.state-alert{ border-color:var(--red); animation:pulseAlert .5s infinite; }
+  @keyframes pulseAlert{ 0%,100%{ box-shadow:0 0 20px rgba(255,85,102,0.4);} 50%{ box-shadow:0 0 40px rgba(255,85,102,0.85);} }
+
+  .signal{
+    position:absolute; left:0; top:0;
+    transform:translate(-50%,-50%);
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:4px;
+    padding:8px 14px; border-radius:14px;
+    background:var(--bg-0); border:2px solid var(--cyan);
+    font-family:var(--font-head); font-weight:700; color:var(--text-0);
+    white-space:nowrap;
+    z-index:4;
+    box-shadow:0 0 16px rgba(77,232,255,0.25);
+  }
+  .signal.decoy{ border-color:var(--amber); box-shadow:0 0 16px rgba(250,199,117,0.3); }
+  .signal.alert{ border-color:var(--red); box-shadow:0 0 16px rgba(255,85,102,0.35); }
+  .signal.armed{ border-color:var(--green); box-shadow:0 0 22px rgba(93,224,168,0.6); }
+  .signal .sig-label{ font-size:16px; }
+  .signal .sig-sub{ font-size:10px; color:var(--text-1); font-family:var(--font-body); font-weight:500; }
+  .signal .sig-icon svg{ display:block; }
+
+  .feedback-txt{
+    position:absolute; left:50%; bottom:14px; transform:translateX(-50%);
+    font-family:var(--font-head); font-size:15px; font-weight:700; color:var(--text-1);
+    z-index:6;
+  }
+
+  .help-overlay{ position:absolute; inset:0; background:rgba(10,10,13,0.94); border-radius:18px; display:none; align-items:center; justify-content:center; z-index:60; padding:20px; }
+  .help-overlay.show{ display:flex; }
+  .help-card{ text-align:center; max-width:360px; }
+
+  .end-box{ text-align:center; background:var(--bg-2); border:1.5px solid var(--panel-border); border-radius:18px; padding:30px 22px; }
+  .end-reason{ color:var(--text-1); font-size:13px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;}
+  .end-score{ font-family:var(--font-head); font-size:44px; color:var(--copper); text-shadow:0 0 20px rgba(224,105,42,0.4); margin:8px 0 4px;}
+  .end-best{ font-size:13px; color:var(--text-2); margin-bottom:24px; }
+  .end-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+  @media (max-width:480px){
+    .arena{ height:420px; }
+    .fox-core{ width:150px; height:150px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SCREEN 1: START ============ -->
+  <div class="screen active" id="screen-start">
+    <h1 class="title">Кибер-Лис: пульт хоткеев</h1>
+    <p class="subtitle">Сигналы летят прямо к спящему Лису. Успей ввести команду, пока сигнал не долетел.</p>
+    <div class="grade-grid">
+      <div class="grade-card" onclick="chooseGrade('junior')">
+        <span class="emoji">🐣</span>
+        <h3>Junior</h3>
+        <p>8 сигналов, команда написана прямо на сигнале, летят медленно, без штрафов.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('middle')">
+        <span class="emoji">🐾</span>
+        <h3>Middle</h3>
+        <p>10 сигналов, иконка + подпись, бывают сигналы-обманки.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('senior')">
+        <span class="emoji">⚡</span>
+        <h3>Senior</h3>
+        <p>12 сигналов, только текст, летят быстро, комбо и режим тревоги.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2: ONBOARDING ============ -->
+  <div class="screen" id="screen-onboarding">
+    <h1 class="title" style="font-size:20px;">Протокол пробуждения Лиса</h1>
+    <div class="onb-box" style="margin-top:20px;">
+      <div class="onb-visual" id="onb-visual"></div>
+      <div class="onb-title" id="onb-title"></div>
+      <div class="onb-text" id="onb-text"></div>
+    </div>
+    <div class="onb-dots" id="onb-dots"></div>
+    <div class="onb-nav">
+      <button class="btn ghost" onclick="onbPrev()" id="onb-prev">Назад</button>
+      <button class="btn" style="width:auto;" onclick="onbNext()" id="onb-next">Далее</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2.5: LIVE PRACTICE ============ -->
+  <div class="screen" id="screen-practice">
+    <h1 class="title" style="font-size:20px;">Найди эти кнопки</h1>
+    <p class="subtitle">Найди на своей клавиатуре нужные кнопки и нажми их по-настоящему.</p>
+    <div class="practice-box">
+      <div class="practice-combo" id="practice-combo-label">Нажми Ctrl + Z</div>
+      <div class="keycaps" id="practice-keycaps"></div>
+      <div class="practice-feedback" id="practice-feedback"></div>
+    </div>
+    <div class="practice-progress" id="practice-progress"></div>
+  </div>
+
+  <!-- ============ SCREEN 3: GAME ============ -->
+  <div class="screen" id="screen-game">
+    <div class="hud">
+      <div><div class="hud-label">Счёт</div><div class="hud-score" id="hud-score">0</div></div>
+      <div id="hud-lives-block"><div class="hud-label">Заряд Лиса</div><div class="hearts" id="hud-hearts"></div></div>
+      <div><div class="hud-label">Сигнал</div><div class="hud-round" id="hud-round">1 / 8</div></div>
+      <div class="combo-badge" id="combo-badge">x1</div>
+      <button class="help-btn" onclick="openHelp()" title="Напоминалка">?</button>
+    </div>
+
+    <div class="legend">
+      <span><span class="k">Ctrl+C</span> — скопировать</span>
+      <span><span class="k">Ctrl+V</span> — вставить</span>
+      <span><span class="k">Ctrl+Z</span> — почини баг</span>
+    </div>
+
+    <div class="arena" id="arena">
+      <div class="fox-core" id="fox-core"></div>
+      <div class="feedback-txt" id="feedback-txt"></div>
+
+      <div class="help-overlay" id="help-overlay">
+        <div class="help-card">
+          <div class="onb-title" style="font-size:15px;">Напоминалка</div>
+          <div class="onb-text" style="font-size:13px;">
+            Ctrl+C — скопировать данные<br>
+            Ctrl+V — вставить данные<br>
+            Ctrl+Z — отменить/исправить баг<br><br>
+            Введи команду, пока сигнал летит к Лису.
+          </div>
+          <button class="btn" style="margin-top:16px; width:auto;" onclick="closeHelp()">Понятно, погнали</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 4: END ============ -->
+  <div class="screen" id="screen-end">
+    <div class="end-box">
+      <div class="end-reason" id="end-reason">Протокол завершён</div>
+      <div class="end-score" id="end-score">0</div>
+      <div class="end-best" id="end-best">Лучший результат сессии: 0</div>
+      <div class="end-actions">
+        <button class="btn" style="width:auto;" onclick="restartSameGrade()">Играть снова</button>
+        <button class="btn secondary" onclick="goToStart()">Выбрать другой грейд</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   CONFIG
+   ========================================================= */
+const GRADE_CONFIG = {
+  junior: {
+    rounds:8, windowMs:5200, pauseMs:1000,
+    hasLives:false, mistakePenalty:0, baseScore:10,
+    signalStyle:'text-big', fakeFlashChance:0, alertMode:false, combo:false
+  },
+  middle: {
+    rounds:10, windowMs:3600, pauseMs:750,
+    hasLives:true, mistakePenalty:1, baseScore:15,
+    signalStyle:'icon-label', fakeFlashChance:0.25, alertMode:false, combo:false
+  },
+  senior: {
+    rounds:12, windowMs:2400, pauseMs:550,
+    hasLives:true, mistakePenalty:1, baseScore:20,
+    signalStyle:'text-small', fakeFlashChance:0, alertMode:true, combo:true
+  }
+};
+
+const COMBOS = [
+  { id:'copy',  code:'KeyC', label:'CTRL + C', sub:'скопировать' },
+  { id:'paste', code:'KeyV', label:'CTRL + V', sub:'вставить' },
+  { id:'undo',  code:'KeyZ', label:'CTRL + Z', sub:'почини баг' }
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = {
+  grade:'junior', score:0, lives:3, round:0,
+  combo:1, comboStreak:0, consecutiveMistakes:0,
+  bestScore:0, paused:false, roundActive:false, isAlertRound:false,
+  currentCombo:null, currentSignalEl:null, rafId:null,
+  roundStart:0, roundWindow:0, fakeFlashActive:false, ctrlArmed:false,
+  practiceIndex:0, practiceCtrlArmed:false
+};
+const PRACTICE_LIST = COMBOS; // фиксированный порядок: C, V, Z
+
+/* =========================================================
+   FOX SVG (палитра с рефа: медь + графит + циан)
+   ========================================================= */
+function foxSVG(mood){
+  // mood: idle, active, success, fail
+  const eyeOpen = mood !== 'idle';
+  const glow = mood === 'success' ? '#5de0a8' : (mood === 'fail' ? '#ff5566' : '#4de8ff');
+  const eyeShape = mood === 'fail'
+    ? '<path d="M50 62 Q58 66 66 62" stroke="#2a1f1a" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M84 62 Q92 66 100 62" stroke="#2a1f1a" stroke-width="3" fill="none" stroke-linecap="round"/>'
+    : (eyeOpen
+        ? `<circle cx="58" cy="60" r="9" fill="#3a2c1a"/><circle cx="58" cy="60" r="4" fill="${glow}"/><circle cx="92" cy="60" r="9" fill="#3a2c1a"/><circle cx="92" cy="60" r="4" fill="${glow}"/>`
+        : '<line x1="50" y1="60" x2="66" y2="60" stroke="#3a2c1a" stroke-width="3" stroke-linecap="round"/><line x1="84" y1="60" x2="100" y2="60" stroke="#3a2c1a" stroke-width="3" stroke-linecap="round"/>');
+
+  return `<svg width="155" height="155" viewBox="0 0 150 150" xmlns="http://www.w3.org/2000/svg">
+    <path d="M35 20 L55 55 L20 62 Z" fill="#e0692a" stroke="#8a3d15" stroke-width="2"/>
+    <path d="M115 20 L95 55 L130 62 Z" fill="#e0692a" stroke="#8a3d15" stroke-width="2"/>
+    <path d="M40 28 L52 50 L28 55 Z" fill="#4de8ff" opacity="0.5"/>
+    <path d="M110 28 L98 50 L122 55 Z" fill="#4de8ff" opacity="0.5"/>
+    <ellipse cx="75" cy="80" rx="52" ry="46" fill="#e77a3c"/>
+    <path d="M75 34 C50 34, 30 55, 30 80 C30 105, 50 122, 75 122 C100 122, 120 105, 120 80 C120 55, 100 34, 75 34 Z" fill="#e77a3c"/>
+    <path d="M75 70 C60 70, 48 82, 48 98 C48 112, 60 122, 75 122 C90 122, 102 112, 102 98 C102 82, 90 70, 75 70 Z" fill="#b8bcc2"/>
+    ${eyeShape}
+    <ellipse cx="75" cy="100" rx="6" ry="5" fill="#2a2a2a"/>
+    <path d="M62 108 Q75 116 88 108" stroke="#5a4a3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M75 44 L75 56 M60 48 L64 58 M90 48 L86 58" stroke="${glow}" stroke-width="1.5" opacity="0.7" stroke-linecap="round"/>
+  </svg>`;
+}
+
+/* =========================================================
+   ICONS (для Middle)
+   ========================================================= */
+function iconCopy(){ return `<svg width="30" height="30" viewBox="0 0 56 56"><rect x="10" y="6" width="28" height="34" rx="4" fill="#241a15" stroke="#4de8ff" stroke-width="2.5"/><rect x="18" y="16" width="28" height="34" rx="4" fill="#0a0a0d" stroke="#4de8ff" stroke-width="2.5"/></svg>`; }
+function iconPaste(){ return `<svg width="30" height="30" viewBox="0 0 56 56"><rect x="12" y="10" width="32" height="40" rx="4" fill="#241a15" stroke="#4de8ff" stroke-width="2.5"/><path d="M22 30 L27 35 L36 24" fill="none" stroke="#5de0a8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>`; }
+function iconUndo(){ return `<svg width="30" height="30" viewBox="0 0 56 56"><path d="M16 22 C 16 22, 26 8, 38 16 C 48 22, 46 40, 32 44 C 22 47, 14 40, 13 34" fill="none" stroke="#ff9c6b" stroke-width="3.5" stroke-linecap="round"/></svg>`; }
+const ICON_FN = { copy: iconCopy, paste: iconPaste, undo: iconUndo };
+
+/* =========================================================
+   ONBOARDING
+   ========================================================= */
+const ONB_STEPS = {
+  junior: [
+    { title:'Твой Лис спит', text:'Кибер-Лис ещё не проснулся. Сигналы будут лететь прямо к нему — нужно успеть ввести команду, пока сигнал не долетел.', visual:() => foxSVG('idle') },
+    { title:'CTRL + C — скопировать', text:'Увидел на сигнале надпись CTRL+C — зажми Ctrl и нажми C.', visual:() => signalPreview('CTRL + C', 'cyan') },
+    { title:'CTRL + V — вставить', text:'Надпись CTRL+V — зажми Ctrl и нажми V.', visual:() => signalPreview('CTRL + V', 'cyan') },
+    { title:'CTRL + Z — почини баг', text:'Надпись CTRL+Z — зажми Ctrl и нажми Z. Успел до того, как сигнал долетел до Лиса — он проснётся чуть больше!', visual:() => signalPreview('CTRL + Z', 'cyan') }
+  ],
+  middle: [
+    { title:'Повторяем три команды', text:'Те же CTRL+C, CTRL+V, CTRL+Z — но теперь на сигнале только иконка и короткая подпись, а летят они быстрее.', visual:() => `<div style="display:flex; gap:16px;">${iconCopy()}${iconPaste()}${iconUndo()}</div>` },
+    { title:'Осторожно, сигнал-обманка', text:'Иногда прилетает жёлтый сигнал без чёткой команды — это ловушка. Не нажимай ничего, просто дай ему пролететь мимо.', visual:() => signalPreview('?', 'amber') },
+    { title:'Ошибка стоит заряда', text:'Не та команда, сигнал долетел до Лиса, или среагировал на обманку — Лис теряет заряд.', visual:() => '<span style="font-size:26px;">❤️</span><span style="font-size:26px; opacity:0.35;">❤️</span><span style="font-size:26px; opacity:0.35;">❤️</span>' }
+  ],
+  senior: [
+    { title:'Финальный протокол: только текст', text:'Иконок больше нет — только текст команды, и летят сигналы совсем быстро.', visual:() => `<div style="font-family:var(--font-head); font-size:18px;">CTRL+C&nbsp;&nbsp;CTRL+V&nbsp;&nbsp;CTRL+Z</div>` },
+    { title:'Комбо-множитель', text:'Успевай подряд без ошибок — множитель очков растёт до x4.', visual:() => `<div style="font-family:var(--font-head); font-size:36px; color:var(--purple); border:1.5px solid var(--purple); border-radius:20px; padding:6px 22px; display:inline-block;">x4</div>` },
+    { title:'Режим тревоги', text:'Две ошибки подряд — следующий сигнал точно CTRL+Z, летит быстрее обычного и мигает красным.', visual:() => signalPreview('CTRL + Z', 'alert') }
+  ]
+};
+let onbIndex = 0;
+function signalPreview(text, mode){
+  const colorMap = { cyan:'var(--cyan)', amber:'var(--amber)', alert:'var(--red)' };
+  return `<div style="padding:10px 18px; border-radius:14px; background:var(--bg-0); border:2px solid ${colorMap[mode]}; font-family:var(--font-head); font-weight:700; color:var(--text-0); display:inline-block;">${text}</div>`;
+}
+function currentOnbSteps(){ return ONB_STEPS[state.grade]; }
+function renderOnbStep(){
+  const steps = currentOnbSteps();
+  const step = steps[onbIndex];
+  document.getElementById('onb-visual').innerHTML = step.visual();
+  document.getElementById('onb-title').textContent = step.title;
+  document.getElementById('onb-text').textContent = step.text;
+  const dotsWrap = document.getElementById('onb-dots');
+  dotsWrap.innerHTML = '';
+  steps.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===onbIndex ? ' active' : '');
+    dotsWrap.appendChild(d);
+  });
+  document.getElementById('onb-prev').style.visibility = onbIndex===0 ? 'hidden' : 'visible';
+  document.getElementById('onb-next').textContent = onbIndex===steps.length-1 ? 'Погнали!' : 'Далее';
+}
+function onbNext(){ const s=currentOnbSteps(); if(onbIndex<s.length-1){onbIndex++; renderOnbStep();} else { startPractice(); } }
+function onbPrev(){ if(onbIndex>0){onbIndex--; renderOnbStep();} }
+
+/* =========================================================
+   SCREEN NAV
+   ========================================================= */
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+function chooseGrade(grade){ state.grade=grade; onbIndex=0; renderOnbStep(); showScreen('screen-onboarding'); }
+function goToStart(){ showScreen('screen-start'); }
+
+/* =========================================================
+   LIVE PRACTICE — реальные нажатия перед началом счётной игры
+   ========================================================= */
+function startPractice(){
+  state.practiceIndex = 0;
+  state.practiceCtrlArmed = false;
+  showScreen('screen-practice');
+  renderPracticeStep();
+}
+
+function renderPracticeStep(){
+  const combo = PRACTICE_LIST[state.practiceIndex];
+  document.getElementById('practice-combo-label').textContent = 'Нажми ' + combo.label;
+  document.getElementById('practice-feedback').textContent = '';
+
+  const keycaps = document.getElementById('practice-keycaps');
+  keycaps.innerHTML = `
+    <div class="keycap target" id="keycap-ctrl">Ctrl</div>
+    <div class="keycap-plus">+</div>
+    <div class="keycap target" id="keycap-letter">${combo.label.split('+')[1].trim()}</div>
+  `;
+
+  const progress = document.getElementById('practice-progress');
+  progress.innerHTML = '';
+  PRACTICE_LIST.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'practice-dot' + (i < state.practiceIndex ? ' done' : (i === state.practiceIndex ? ' current' : ''));
+    progress.appendChild(d);
+  });
+}
+
+function handlePracticeKeydown(e){
+  if(e.code === 'ControlLeft' || e.code === 'ControlRight'){
+    state.practiceCtrlArmed = true;
+    const cap = document.getElementById('keycap-ctrl');
+    if(cap) cap.classList.add('hit');
+    return;
+  }
+  if(!e.ctrlKey && !e.metaKey) return;
+  const combo = PRACTICE_LIST[state.practiceIndex];
+  if(e.code !== combo.code) return;
+  e.preventDefault();
+
+  const letterCap = document.getElementById('keycap-letter');
+  if(letterCap) letterCap.classList.add('hit');
+
+  const feedback = document.getElementById('practice-feedback');
+  feedback.style.color = 'var(--green)';
+
+  if(state.practiceIndex < PRACTICE_LIST.length - 1){
+    const nextCombo = PRACTICE_LIST[state.practiceIndex + 1];
+    feedback.textContent = 'Принято! Следующая комбинация: ' + nextCombo.label;
+    setTimeout(() => {
+      state.practiceIndex++;
+      state.practiceCtrlArmed = false;
+      renderPracticeStep();
+    }, 900);
+  } else {
+    feedback.textContent = 'Принято! Все команды освоены — погнали в игру!';
+    setTimeout(() => { startGame(); }, 1000);
+  }
+}
+function handlePracticeKeyup(e){
+  if(e.code === 'ControlLeft' || e.code === 'ControlRight'){
+    state.practiceCtrlArmed = false;
+    const cap = document.getElementById('keycap-ctrl');
+    if(cap && !cap.classList.contains('hit')) return;
+  }
+}
+
+/* =========================================================
+   GAME FLOW
+   ========================================================= */
+function startGame(){
+  const cfg = GRADE_CONFIG[state.grade];
+  Object.assign(state, { score:0, lives:3, round:0, combo:1, comboStreak:0, consecutiveMistakes:0, paused:false, roundActive:false, isAlertRound:false, fakeFlashActive:false });
+  document.getElementById('hud-lives-block').style.display = cfg.hasLives ? 'block' : 'none';
+  document.getElementById('combo-badge').classList.toggle('show', !!cfg.combo);
+  setFoxMood('idle');
+  updateHUD();
+  showScreen('screen-game');
+  nextRound();
+}
+function restartSameGrade(){ startGame(); }
+
+function updateHUD(){
+  const cfg = GRADE_CONFIG[state.grade];
+  document.getElementById('hud-score').textContent = state.score;
+  document.getElementById('hud-round').textContent = Math.min(state.round+1, cfg.rounds) + ' / ' + cfg.rounds;
+  const heartsWrap = document.getElementById('hud-hearts');
+  heartsWrap.innerHTML = '';
+  for(let i=0;i<3;i++){
+    const h = document.createElement('span');
+    h.className = 'heart' + (i < state.lives ? '' : ' lost');
+    h.textContent = '❤️';
+    heartsWrap.appendChild(h);
+  }
+  document.getElementById('combo-badge').textContent = 'x' + state.combo;
+}
+function setFoxMood(mood){
+  const core = document.getElementById('fox-core');
+  core.innerHTML = foxSVG(mood);
+  core.className = 'fox-core' + (mood==='active' ? ' state-active' : mood==='success' ? ' state-success' : mood==='fail' ? ' state-fail' : '');
+  if(state.isAlertRound && mood==='active') core.classList.add('state-alert');
+}
+
+function pickCombo(){
+  if(state.isAlertRound) return COMBOS.find(c=>c.id==='undo');
+  return COMBOS[Math.floor(Math.random()*COMBOS.length)];
+}
+
+function nextRound(){
+  const cfg = GRADE_CONFIG[state.grade];
+  if(state.round >= cfg.rounds){ endGame('done'); return; }
+  document.getElementById('feedback-txt').textContent = '';
+  setFoxMood('idle');
+
+  if(cfg.fakeFlashChance && Math.random() < cfg.fakeFlashChance){
+    spawnDecoy(cfg, () => { launchRealSignal(cfg); });
+  } else {
+    launchRealSignal(cfg);
+  }
+}
+
+function spawnDecoy(cfg, onDone){
+  state.fakeFlashActive = true;
+  const el = document.createElement('div');
+  el.className = 'signal decoy';
+  el.innerHTML = '<div class="sig-label">?</div>';
+  document.getElementById('arena').appendChild(el);
+  animateSignal(el, 700, () => {
+    el.remove();
+    state.fakeFlashActive = false;
+    onDone();
+  });
+}
+
+function launchRealSignal(cfg){
+  state.isAlertRound = cfg.alertMode && state.consecutiveMistakes >= 2;
+  const combo = pickCombo();
+  state.currentCombo = combo;
+  state.roundActive = true;
+  state.ctrlArmed = false;
+
+  const el = document.createElement('div');
+  el.className = 'signal' + (state.isAlertRound ? ' alert' : '');
+  if(cfg.signalStyle === 'text-big'){
+    el.innerHTML = `<div class="sig-label" style="font-size:20px;">${combo.label}</div><div class="sig-sub">${combo.sub}</div>`;
+  } else if(cfg.signalStyle === 'icon-label'){
+    el.innerHTML = `<div class="sig-icon">${ICON_FN[combo.id]()}</div><div class="sig-sub">${combo.label}</div>`;
+  } else {
+    el.innerHTML = `<div class="sig-label" style="font-size:14px;">${combo.label}</div>`;
+  }
+  document.getElementById('arena').appendChild(el);
+  state.currentSignalEl = el;
+
+  setFoxMood('active');
+
+  const windowMs = state.isAlertRound ? Math.max(900, cfg.windowMs*0.75) : cfg.windowMs;
+  animateSignal(el, windowMs, () => {
+    if(state.roundActive) onRoundResolved(false, 'timeout', cfg);
+  });
+}
+
+function animateSignal(el, durationMs, onArrive){
+  const arena = document.getElementById('arena');
+  const rect = arena.getBoundingClientRect();
+  const cx = rect.width/2, cy = rect.height/2;
+  const R = Math.min(rect.width, rect.height)/2 - 20;
+  const angle = Math.random() * Math.PI * 2;
+  const startX = cx + R*Math.cos(angle);
+  const startY = cy + R*Math.sin(angle);
+  const start = performance.now();
+  el._cancelled = false;
+
+  function frame(now){
+    if(el._cancelled) return;
+    const t = Math.min(1, (now-start)/durationMs);
+    const x = startX + (cx-startX)*t;
+    const y = startY + (cy-startY)*t;
+    const scale = 1 - 0.45*t;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.transform = `translate(-50%,-50%) scale(${scale})`;
+    if(t < 1){
+      state.rafId = requestAnimationFrame(frame);
+    } else {
+      onArrive();
+    }
+  }
+  state.rafId = requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   INPUT — по e.code, независимо от раскладки
+   ========================================================= */
+window.addEventListener('keydown', (e) => {
+  const practiceVisible = document.getElementById('screen-practice').classList.contains('active');
+  if(practiceVisible){ handlePracticeKeydown(e); return; }
+
+  const gameVisible = document.getElementById('screen-game').classList.contains('active');
+  if(!gameVisible || state.paused) return;
+
+  if(e.code === 'ControlLeft' || e.code === 'ControlRight'){
+    state.ctrlArmed = true;
+    if(state.currentSignalEl && state.roundActive) state.currentSignalEl.classList.add('armed');
+    return;
+  }
+  if(!e.ctrlKey && !e.metaKey) return;
+  const code = e.code;
+  if(!['KeyC','KeyV','KeyZ'].includes(code)) return;
+  e.preventDefault();
+
+  const cfg = GRADE_CONFIG[state.grade];
+
+  if(state.fakeFlashActive){
+    triggerDecoyMistake(cfg);
+    return;
+  }
+  if(!state.roundActive) return;
+
+  const pressedCombo = COMBOS.find(c => c.code === code);
+  if(pressedCombo.id === state.currentCombo.id){
+    onRoundResolved(true, 'success', cfg);
+  } else {
+    onRoundResolved(false, 'wrong', cfg);
+  }
+});
+window.addEventListener('keyup', (e) => {
+  const practiceVisible = document.getElementById('screen-practice').classList.contains('active');
+  if(practiceVisible){ handlePracticeKeyup(e); return; }
+
+  if(e.code === 'ControlLeft' || e.code === 'ControlRight'){
+    state.ctrlArmed = false;
+    if(state.currentSignalEl) state.currentSignalEl.classList.remove('armed');
+  }
+});
+
+function triggerDecoyMistake(cfg){
+  const arena = document.getElementById('arena');
+  document.getElementById('feedback-txt').textContent = 'Рано! Это была обманка';
+  document.getElementById('feedback-txt').style.color = 'var(--red)';
+  arena.classList.add('shake');
+  setTimeout(()=>arena.classList.remove('shake'), 300);
+  applyMistakePenalty(cfg);
+  updateHUD();
+}
+
+function onRoundResolved(success, reason, cfg){
+  state.roundActive = false;
+  cancelAnimationFrame(state.rafId);
+  if(state.currentSignalEl){ state.currentSignalEl._cancelled = true; state.currentSignalEl.remove(); state.currentSignalEl = null; }
+
+  const feedback = document.getElementById('feedback-txt');
+
+  if(success){
+    let gained = cfg.baseScore;
+    if(cfg.combo){
+      state.comboStreak++;
+      state.combo = Math.min(4, 1 + Math.floor(state.comboStreak/3));
+      gained = gained * state.combo;
+    }
+    state.score += gained;
+    state.consecutiveMistakes = 0;
+    setFoxMood('success');
+    feedback.style.color = 'var(--green)';
+    feedback.textContent = '+' + gained + ' — Лис проснулся чуть больше!';
+  } else {
+    const msg = reason === 'timeout' ? 'Сигнал долетел!' : 'Не та команда!';
+    setFoxMood('fail');
+    feedback.style.color = 'var(--red)';
+    feedback.textContent = msg;
+    applyMistakePenalty(cfg);
+  }
+
+  updateHUD();
+  state.round++;
+
+  setTimeout(() => {
+    if(state.round >= cfg.rounds){ endGame('done'); }
+    else { nextRound(); }
+  }, cfg.pauseMs);
+}
+
+function applyMistakePenalty(cfg){
+  if(cfg.combo){ state.combo = 1; state.comboStreak = 0; }
+  state.consecutiveMistakes++;
+  if(cfg.hasLives && cfg.mistakePenalty > 0){
+    state.lives -= cfg.mistakePenalty;
+    if(state.lives <= 0){
+      setTimeout(() => endGame('lives'), 500);
+    }
+  }
+}
+
+/* =========================================================
+   HELP
+   ========================================================= */
+function openHelp(){ state.paused = true; document.getElementById('help-overlay').classList.add('show'); }
+function closeHelp(){ state.paused = false; document.getElementById('help-overlay').classList.remove('show'); }
+
+/* =========================================================
+   END GAME
+   ========================================================= */
+function endGame(reason){
+  cancelAnimationFrame(state.rafId);
+  state.roundActive = false;
+  if(state.currentSignalEl){ state.currentSignalEl.remove(); state.currentSignalEl = null; }
+  if(state.score > state.bestScore) state.bestScore = state.score;
+  document.getElementById('end-reason').textContent = reason === 'lives' ? 'Заряд Лиса закончился' : 'Протокол завершён';
+  document.getElementById('end-score').textContent = state.score;
+  document.getElementById('end-best').textContent = 'Лучший результат сессии: ' + state.bestScore;
+  showScreen('screen-end');
+}
+</script>
+</body>
+</html>

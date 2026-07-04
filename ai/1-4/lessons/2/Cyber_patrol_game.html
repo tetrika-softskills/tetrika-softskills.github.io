@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Кибер-Патруль: Ловим сигналы</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-0:#070b13;
+    --bg-1:#0e1522;
+    --bg-2:#141f30;
+    --panel-border:#28405c;
+    --cyan:#4de8ff;
+    --cyan-dim:#1f5b6e;
+    --magenta:#ff5fb0;
+    --purple:#8b7bf0;
+    --green:#5de0a8;
+    --amber:#fac775;
+    --red:#ff5566;
+    --text-0:#eaf4ff;
+    --text-1:#8fa8c4;
+    --text-2:#5c7591;
+    --font-head:'Orbitron', sans-serif;
+    --font-body:'Inter', sans-serif;
+  }
+
+  *{box-sizing:border-box; margin:0; padding:0;}
+
+  body{
+    background:radial-gradient(ellipse at 50% 0%, #101c2e 0%, var(--bg-0) 60%);
+    color:var(--text-0);
+    font-family:var(--font-body);
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    overflow-x:hidden;
+  }
+
+  .app{
+    width:100%;
+    max-width:720px;
+    background:var(--bg-1);
+    border:1px solid var(--panel-border);
+    border-radius:20px;
+    padding:28px;
+    position:relative;
+    box-shadow:0 0 0 1px rgba(77,232,255,0.05), 0 30px 60px rgba(0,0,0,0.4);
+  }
+
+  .app::before{
+    content:'';
+    position:absolute;
+    inset:0;
+    border-radius:20px;
+    pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+    opacity:0.5;
+  }
+
+  .screen{display:none;}
+  .screen.active{display:block; animation:fadeIn .25s ease;}
+  @keyframes fadeIn{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);}}
+
+  h1.title{
+    font-family:var(--font-head);
+    font-size:26px;
+    font-weight:800;
+    letter-spacing:0.5px;
+    text-align:center;
+    color:var(--text-0);
+    text-shadow:0 0 18px rgba(77,232,255,0.35);
+  }
+  .subtitle{
+    text-align:center;
+    color:var(--text-1);
+    font-size:14px;
+    margin-top:8px;
+    margin-bottom:26px;
+    line-height:1.5;
+  }
+
+  /* ---------- START SCREEN ---------- */
+  .grade-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(190px,1fr));
+    gap:14px;
+  }
+  .grade-card{
+    background:var(--bg-2);
+    border:1.5px solid var(--panel-border);
+    border-radius:16px;
+    padding:18px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:transform .15s ease, border-color .15s ease, background .15s ease;
+  }
+  .grade-card:hover{ transform:translateY(-3px); border-color:var(--cyan); background:#182238; }
+  .grade-card .emoji{font-size:34px; display:block; margin-bottom:8px;}
+  .grade-card h3{font-family:var(--font-head); font-size:15px; color:var(--text-0); margin-bottom:6px; letter-spacing:0.5px;}
+  .grade-card p{font-size:12.5px; color:var(--text-1); line-height:1.5; margin-bottom:14px; min-height:52px;}
+  .grade-card .btn{width:100%;}
+
+  .btn{
+    font-family:var(--font-body);
+    font-weight:600;
+    font-size:14px;
+    color:var(--bg-0);
+    background:var(--cyan);
+    border:none;
+    border-radius:10px;
+    padding:11px 18px;
+    cursor:pointer;
+    transition:transform .1s ease, box-shadow .15s ease;
+    box-shadow:0 0 0 rgba(77,232,255,0);
+  }
+  .btn:hover{ box-shadow:0 0 18px rgba(77,232,255,0.45); }
+  .btn:active{ transform:scale(0.97); }
+  .btn.secondary{
+    background:transparent;
+    color:var(--text-0);
+    border:1.5px solid var(--panel-border);
+  }
+  .btn.secondary:hover{ border-color:var(--cyan); box-shadow:none; }
+  .btn.ghost{
+    background:transparent;
+    color:var(--text-1);
+    border:none;
+    text-decoration:underline;
+    padding:6px;
+  }
+
+  /* ---------- ONBOARDING ---------- */
+  .onb-box{
+    background:var(--bg-2);
+    border:1.5px solid var(--panel-border);
+    border-radius:16px;
+    padding:26px 20px;
+    text-align:center;
+  }
+  .onb-visual{ height:120px; display:flex; align-items:center; justify-content:center; margin-bottom:16px; gap:14px; }
+  .onb-title{ font-family:var(--font-head); font-size:17px; margin-bottom:10px; color:var(--text-0); }
+  .onb-text{ font-size:14px; color:var(--text-1); line-height:1.6; max-width:420px; margin:0 auto; }
+  .onb-dots{ display:flex; justify-content:center; gap:6px; margin:18px 0; }
+  .dot{ width:7px; height:7px; border-radius:50%; background:var(--panel-border); transition:background .2s; }
+  .dot.active{ background:var(--cyan); }
+  .onb-nav{ display:flex; justify-content:space-between; align-items:center; margin-top:6px; gap:10px; }
+
+  /* ---------- GAME SCREEN ---------- */
+  .hud{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    background:var(--bg-2);
+    border:1.5px solid var(--panel-border);
+    border-radius:14px;
+    padding:12px 16px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .hud-block{ display:flex; align-items:center; gap:8px; }
+  .hud-label{ font-size:10.5px; color:var(--text-2); text-transform:uppercase; letter-spacing:0.5px; }
+  .hud-score{ font-family:var(--font-head); font-size:19px; color:var(--text-0); }
+  .hearts{ display:flex; gap:3px; }
+  .heart{ font-size:16px; }
+  .heart.lost{ filter:grayscale(1) opacity(0.35); }
+  .timer-bar-wrap{ width:130px; height:8px; background:var(--bg-0); border-radius:6px; overflow:hidden; }
+  .timer-bar{ height:100%; background:var(--green); width:100%; transition:width .3s linear, background .3s; }
+  .help-btn{
+    width:30px; height:30px; border-radius:50%;
+    background:var(--bg-0); border:1.5px solid var(--panel-border);
+    color:var(--text-1); font-family:var(--font-head); font-size:13px;
+    cursor:pointer;
+  }
+  .help-btn:hover{ border-color:var(--cyan); color:var(--cyan); }
+
+  .legend{
+    display:flex; gap:14px; justify-content:center;
+    font-size:12px; color:var(--text-1);
+    margin-bottom:10px; flex-wrap:wrap;
+  }
+  .legend span.k{ color:var(--text-0); font-weight:600; }
+  .legend .ring-sample{ display:inline-block; width:10px; height:10px; border-radius:50%; vertical-align:middle; margin-right:2px; }
+
+  .field{
+    position:relative;
+    width:100%;
+    height:400px;
+    background:
+      linear-gradient(135deg, rgba(77,232,255,0.04) 1px, transparent 1px) 0 0/40px 40px,
+      var(--bg-2);
+    border:1.5px solid var(--panel-border);
+    border-radius:18px;
+    overflow:hidden;
+    cursor:none;
+  }
+  .hole{
+    position:absolute;
+    width:64px; height:34px;
+    margin-left:-32px; margin-top:-17px;
+    border-radius:50%;
+    background:radial-gradient(ellipse at center, #050810 0%, #0f1a28 100%);
+    border:1.5px solid var(--panel-border);
+  }
+  .creature{
+    position:absolute;
+    left:50%; top:35%;
+    transform:translate(-50%,-50%) scale(0);
+    font-size:30px;
+    line-height:1;
+    cursor:none;
+    user-select:none;
+    transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .15s ease;
+    filter:drop-shadow(0 0 6px rgba(0,0,0,0.5));
+    width:44px; height:44px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+  }
+  .creature.pop{ transform:translate(-50%,-50%) scale(1); }
+  .creature.hiding{ transform:translate(-50%,-50%) scale(0); }
+
+  /* цветное кольцо-подсказка вместо иконки мышки — не занимает лишнего места и не может "выпирать" */
+  .creature.hint-lkm{ box-shadow: 0 0 0 3px var(--cyan), 0 0 14px rgba(77,232,255,0.55); }
+  .creature.hint-pkm{ box-shadow: 0 0 0 3px var(--magenta), 0 0 14px rgba(255,95,176,0.55); }
+
+  .flash{
+    position:absolute; inset:0;
+    background:rgba(255,85,102,0.35);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .12s;
+  }
+  .flash.on{ opacity:1; }
+
+  .float-txt{
+    position:absolute;
+    font-family:var(--font-head);
+    font-size:13px;
+    font-weight:700;
+    pointer-events:none;
+    animation:floatUp .7s ease-out forwards;
+    white-space:nowrap;
+  }
+  @keyframes floatUp{
+    0%{ opacity:1; transform:translate(-50%,0); }
+    100%{ opacity:0; transform:translate(-50%,-40px); }
+  }
+
+  .paw-cursor{
+    position:absolute;
+    width:46px; height:46px;
+    pointer-events:none;
+    transform:translate(-50%,-50%);
+    z-index:50;
+    left:-100px; top:-100px;
+  }
+
+  .combo-badge{
+    position:absolute;
+    top:10px; right:14px;
+    background:var(--bg-0);
+    border:1.5px solid var(--purple);
+    color:var(--purple);
+    font-family:var(--font-head);
+    font-size:12px;
+    padding:4px 10px;
+    border-radius:20px;
+    opacity:0;
+    transition:opacity .2s;
+  }
+  .combo-badge.show{ opacity:1; }
+
+  /* ---------- HELP OVERLAY (in-game) ---------- */
+  .help-overlay{
+    position:absolute; inset:0;
+    background:rgba(7,11,19,0.92);
+    border-radius:18px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:60;
+    padding:20px;
+  }
+  .help-overlay.show{ display:flex; }
+  .help-card{ text-align:center; max-width:360px; }
+
+  /* ---------- END SCREEN ---------- */
+  .end-box{
+    text-align:center;
+    background:var(--bg-2);
+    border:1.5px solid var(--panel-border);
+    border-radius:18px;
+    padding:30px 22px;
+  }
+  .end-reason{ color:var(--text-1); font-size:13px; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;}
+  .end-score{ font-family:var(--font-head); font-size:44px; color:var(--cyan); text-shadow:0 0 20px rgba(77,232,255,0.4); margin:8px 0 4px;}
+  .end-best{ font-size:13px; color:var(--text-2); margin-bottom:24px; }
+  .end-actions{ display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+
+  @media (max-width:480px){
+    .field{ height:340px; }
+    .hud{ font-size:12px; }
+    .timer-bar-wrap{ width:90px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SCREEN 1: START / GRADE SELECT ============ -->
+  <div class="screen active" id="screen-start">
+    <h1 class="title">Кибер-Патруль</h1>
+    <p class="subtitle">Твой Кибер-Спутник ловит сигналы лапой.<br>Выбери протокол сложности, Агент.</p>
+
+    <div class="grade-grid">
+      <div class="grade-card" onclick="chooseGrade('junior')">
+        <span class="emoji">🐣</span>
+        <h3>Junior</h3>
+        <p>Медленно, только 3 сигнала, без штрафов за ошибку. Идеально для первого запуска.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('middle')">
+        <span class="emoji">🐾</span>
+        <h3>Middle</h3>
+        <p>Средний темп, иногда встречаются редкие сигналы. Ошибки немного бьют по энергии.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+      <div class="grade-card" onclick="chooseGrade('senior')">
+        <span class="emoji">⚡</span>
+        <h3>Senior</h3>
+        <p>Быстрый темп, все виды сигналов вперемешку, комбо-множитель очков.</p>
+        <button class="btn">Выбрать</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 2: ONBOARDING ============ -->
+  <div class="screen" id="screen-onboarding">
+    <h1 class="title" style="font-size:20px;">Протокол управления лапой</h1>
+    <div class="onb-box" style="margin-top:20px;">
+      <div class="onb-visual" id="onb-visual"></div>
+      <div class="onb-title" id="onb-title"></div>
+      <div class="onb-text" id="onb-text"></div>
+    </div>
+    <div class="onb-dots" id="onb-dots"></div>
+    <div class="onb-nav">
+      <button class="btn ghost" onclick="onbPrev()" id="onb-prev">Назад</button>
+      <button class="btn" onclick="onbNext()" id="onb-next">Далее</button>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 3: GAME ============ -->
+  <div class="screen" id="screen-game">
+    <div class="hud">
+      <div class="hud-block">
+        <div>
+          <div class="hud-label">Счёт</div>
+          <div class="hud-score" id="hud-score">0</div>
+        </div>
+      </div>
+      <div class="hud-block" id="hud-lives-block">
+        <div>
+          <div class="hud-label">Заряд лапы</div>
+          <div class="hearts" id="hud-hearts"></div>
+        </div>
+      </div>
+      <div class="hud-block">
+        <div>
+          <div class="hud-label" id="hud-timer-label">Время</div>
+          <div class="timer-bar-wrap"><div class="timer-bar" id="hud-timer-bar"></div></div>
+        </div>
+      </div>
+      <button class="help-btn" onclick="openHelp()" title="Напоминалка">?</button>
+    </div>
+
+    <div class="legend">
+      <span><span class="k">🔋⚡ ЛКМ</span> — забрать</span>
+      <span><span class="k">🦟👾 ПКМ</span> — изолировать</span>
+      <span><span class="k">💣💀 не трогать</span></span>
+      <span><span class="ring-sample" style="background:var(--cyan);"></span>кольцо = ЛКМ &nbsp; <span class="ring-sample" style="background:var(--magenta);"></span>кольцо = ПКМ</span>
+    </div>
+
+    <div class="field" id="field">
+      <!-- holes injected by JS -->
+      <div class="flash" id="flash"></div>
+      <div class="combo-badge" id="combo-badge">x1</div>
+      <div class="paw-cursor" id="paw-cursor"></div>
+
+      <div class="help-overlay" id="help-overlay">
+        <div class="help-card">
+          <div class="onb-visual" id="help-visual" style="height:100px;"></div>
+          <div class="onb-title" style="font-size:15px;">Напоминалка</div>
+          <div class="onb-text" style="font-size:13px;">
+            ЛКМ — забираем чистые сигналы (🔋⚡)<br>
+            ПКМ — изолируем баги (🦟👾)<br>
+            Бомбу (💣💀) вообще не трогаем — просто жди
+          </div>
+          <button class="btn" style="margin-top:16px;" onclick="closeHelp()">Понятно, погнали</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCREEN 4: END ============ -->
+  <div class="screen" id="screen-end">
+    <div class="end-box">
+      <div class="end-reason" id="end-reason">Время вышло</div>
+      <div class="end-score" id="end-score">0</div>
+      <div class="end-best" id="end-best">Лучший результат сессии: 0</div>
+      <div class="end-actions">
+        <button class="btn" onclick="restartSameGrade()">Играть снова</button>
+        <button class="btn secondary" onclick="goToStart()">Выбрать другой грейд</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* =========================================================
+   CONFIG — можно свободно менять цифры под свой темп урока
+   ========================================================= */
+const GRADE_CONFIG = {
+  junior: {
+    label:'Junior',
+    roundTime:45,
+    maxActive:2,
+    spawnInterval:1500,
+    lifeTime:3200,
+    hasLives:false,
+    mistakePenalty:0,
+    baseScore:10,
+    hintMode:'always',      // кольцо видно сразу и всё время
+    bombChance:0.15,
+    iconMode:'single'
+  },
+  middle: {
+    label:'Middle',
+    roundTime:50,
+    maxActive:3,
+    spawnInterval:1100,
+    lifeTime:2300,
+    hasLives:true,
+    mistakePenalty:1,
+    baseScore:15,
+    hintMode:'delayed',     // кольцо появляется с задержкой
+    hintDelay:600,
+    bombChance:0.2,
+    iconMode:'mostlyPrimary'
+  },
+  senior: {
+    label:'Senior',
+    roundTime:55,
+    maxActive:4,
+    spawnInterval:850,
+    lifeTime:1500,
+    hasLives:true,
+    mistakePenalty:1,
+    baseScore:20,
+    hintMode:'none',        // кольца нет вообще
+    bombChance:0.22,
+    iconMode:'equal',
+    combo:true
+  }
+};
+
+const ICONS = {
+  battery:['🔋','⚡'],
+  bug:['🦟','👾'],
+  bomb:['💣','💀']
+};
+const NEED_BUTTON = { battery:0, bug:2 }; // 0 = ЛКМ, 2 = ПКМ
+const HINT_CLASS = { battery:'hint-lkm', bug:'hint-pkm' };
+
+const HOLE_POSITIONS = [
+  {x:10,y:22},{x:26,y:14},{x:42,y:26},{x:58,y:16},{x:76,y:24},{x:90,y:15},
+  {x:14,y:55},{x:32,y:64},{x:50,y:50},{x:68,y:62},{x:84,y:53},
+  {x:22,y:85},{x:44,y:80},{x:64,y:87},{x:82,y:80}
+];
+
+/* =========================================================
+   STATE
+   ========================================================= */
+let state = {
+  grade:'junior',
+  score:0,
+  lives:3,
+  timeLeft:0,
+  combo:1,
+  comboStreak:0,
+  spawnTimer:null,
+  countdownTimer:null,
+  holes:[],
+  activeCreatures:{},
+  bestScore:0,
+  paused:false
+};
+
+/* =========================================================
+   ONBOARDING CONTENT — разное для каждого грейда,
+   визуал теперь показывает именно то отличие, которое есть в игре
+   ========================================================= */
+const ONB_STEPS = {
+  junior: [
+    {
+      title:'Знакомься, это твоя лапа',
+      text:'Механическая лапа Кибер-Спутника заменяет обычный курсор мыши прямо на игровом поле.',
+      visual: () => pawSVG(64)
+    },
+    {
+      title:'ЛКМ — забирай чистые сигналы',
+      text:'Батарейка — это чистые данные. Нажимай левую кнопку мыши, чтобы забрать её себе. Вокруг неё сразу будет светиться цианское кольцо-подсказка.',
+      visual: () => mouseHintSVG('left', 60, 82) + ringDemo('🔋','hint-lkm')
+    },
+    {
+      title:'ПКМ — изолируй баги',
+      text:'Жук хочет навредить Спутнику. Нажимай правую кнопку мыши. Вокруг жука будет розовое кольцо — это тоже подсказка.',
+      visual: () => mouseHintSVG('right', 60, 82) + ringDemo('🦟','hint-pkm')
+    },
+    {
+      title:'Бомбу вообще не трогай!',
+      text:'Если увидел бомбу — просто не нажимай ничего. Подожди пару секунд, пока сигнал сам скроется в норе. Ошибиться тут не страшно!',
+      visual: () => '<span style="font-size:44px;">💣</span><span style="font-size:22px; margin-left:10px; color:var(--red);">🚫</span>'
+    }
+  ],
+
+  middle: [
+    {
+      title:'Повторяем протокол лапы',
+      text:'Как и раньше: батарейки и чипы (🔋⚡) — ЛКМ, жуки и вирусы (🦟👾) — ПКМ. Но теперь сигналы появляются чаще и живут меньше.',
+      visual: () => ringDemo('🔋','hint-lkm') + ringDemo('🦟','hint-pkm')
+    },
+    {
+      title:'Кольцо появится не сразу',
+      text:'Цветное кольцо-подсказка теперь загорается с небольшой задержкой. Постарайся вспомнить нужную кнопку сам, не дожидаясь подсказки.',
+      visual: () => '<div style="display:flex; align-items:center; gap:10px;">'
+        + '<span style="font-size:40px;">⏳</span>'
+        + ringFadeDemo('🔋')
+        + '</div>'
+    },
+    {
+      title:'Ошибка теперь стоит заряда',
+      text:'Нажал не ту кнопку или тронул бомбу (💣💀) — Спутник теряет часть заряда. Закончится заряд — раунд остановится.',
+      visual: () => '<span style="font-size:26px;">❤️</span><span style="font-size:26px; opacity:0.35;">❤️</span><span style="font-size:26px; opacity:0.35;">❤️</span>'
+    }
+  ],
+
+  senior: [
+    {
+      title:'Финальный протокол: колец больше нет',
+      text:'Ты уже профи — никаких цветных колец-подсказок. Ориентируйся только по иконке: 🔋⚡ — ЛКМ, 🦟👾 — ПКМ, 💣💀 — не трогать.',
+      visual: () => '<span style="font-size:34px;">🔋⚡</span><span style="font-size:34px; margin:0 10px;">🦟👾</span><span style="font-size:34px;">💣💀</span>'
+    },
+    {
+      title:'Комбо и скорость',
+      text:'Сигналы летят быстро и живут недолго. Лови подряд без ошибок — множитель очков растёт до x4. Одна ошибка — и комбо сгорает.',
+      visual: () => '<div style="font-family:var(--font-head); font-size:36px; color:var(--purple); border:1.5px solid var(--purple); border-radius:20px; padding:6px 22px; display:inline-block;">x4</div>'
+    }
+  ]
+};
+let onbIndex = 0;
+
+/* =========================================================
+   SVG / DEMO helpers
+   ========================================================= */
+function pawSVG(size){
+  return `<svg width="${size}" height="${size}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="68" rx="30" ry="22" fill="#8fb6d6"/>
+    <ellipse cx="24" cy="34" rx="14" ry="18" fill="#8fb6d6" transform="rotate(-16 24 34)"/>
+    <ellipse cx="50" cy="24" rx="14" ry="19" fill="#8fb6d6"/>
+    <ellipse cx="76" cy="34" rx="14" ry="18" fill="#8fb6d6" transform="rotate(16 76 34)"/>
+    <circle cx="24" cy="26" r="4" fill="#4de8ff"/>
+    <circle cx="50" cy="15" r="4" fill="#4de8ff"/>
+    <circle cx="76" cy="26" r="4" fill="#4de8ff"/>
+  </svg>`;
+}
+
+/* размер теперь всегда задаётся явно параметрами — больше не может "выпирать" за пределы контейнера */
+function mouseHintSVG(side, w=64, h=88){
+  const leftFill = side==='left' ? '#4de8ff' : '#2a3a4d';
+  const rightFill = side==='right' ? '#4de8ff' : '#2a3a4d';
+  return `<svg width="${w}" height="${h}" viewBox="0 0 64 88" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;">
+    <rect x="4" y="4" width="56" height="80" rx="28" fill="#141f30" stroke="#28405c" stroke-width="2"/>
+    <path d="M32 4 L32 40 L4 40 A28 28 0 0 1 32 4 Z" fill="${leftFill}"/>
+    <path d="M32 4 L32 40 L60 40 A28 28 0 0 0 32 4 Z" fill="${rightFill}"/>
+    <line x1="32" y1="10" x2="32" y2="40" stroke="#0e1522" stroke-width="2"/>
+    <rect x="27" y="46" width="10" height="18" rx="5" fill="#0e1522"/>
+  </svg>`;
+}
+
+/* демонстрация кольца-подсказки в онбординге — тот же визуал, что и в игре */
+function ringDemo(icon, hintClass){
+  const color = hintClass === 'hint-lkm' ? 'var(--cyan)' : 'var(--magenta)';
+  return `<div style="width:52px;height:52px;border-radius:50%;background:var(--bg-0);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 0 3px ${color}, 0 0 14px ${color};">${icon}</div>`;
+}
+
+function ringFadeDemo(icon){
+  return `<div style="width:52px;height:52px;border-radius:50%;background:var(--bg-0);display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 0 3px var(--cyan);opacity:0.4;">${icon}</div>`;
+}
+
+/* =========================================================
+   SCREEN NAV
+   ========================================================= */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function chooseGrade(grade){
+  state.grade = grade;
+  onbIndex = 0;
+  renderOnbStep();
+  showScreen('screen-onboarding');
+}
+
+function goToStart(){
+  showScreen('screen-start');
+}
+
+/* =========================================================
+   ONBOARDING
+   ========================================================= */
+function currentOnbSteps(){
+  return ONB_STEPS[state.grade];
+}
+
+function renderOnbStep(){
+  const steps = currentOnbSteps();
+  const step = steps[onbIndex];
+  document.getElementById('onb-visual').innerHTML = step.visual();
+  document.getElementById('onb-title').textContent = step.title;
+  document.getElementById('onb-text').textContent = step.text;
+
+  const dotsWrap = document.getElementById('onb-dots');
+  dotsWrap.innerHTML = '';
+  steps.forEach((_, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i===onbIndex ? ' active' : '');
+    dotsWrap.appendChild(d);
+  });
+
+  document.getElementById('onb-prev').style.visibility = onbIndex===0 ? 'hidden' : 'visible';
+  document.getElementById('onb-next').textContent = onbIndex===steps.length-1 ? 'Погнали!' : 'Далее';
+}
+
+function onbNext(){
+  const steps = currentOnbSteps();
+  if(onbIndex < steps.length-1){
+    onbIndex++;
+    renderOnbStep();
+  } else {
+    startGame();
+  }
+}
+function onbPrev(){
+  if(onbIndex>0){ onbIndex--; renderOnbStep(); }
+}
+
+/* =========================================================
+   GAME SETUP
+   ========================================================= */
+function buildField(){
+  const field = document.getElementById('field');
+  field.querySelectorAll('.hole').forEach(h => h.remove());
+  state.holes = [];
+
+  HOLE_POSITIONS.forEach((pos, i) => {
+    const hole = document.createElement('div');
+    hole.className = 'hole';
+    hole.style.left = pos.x + '%';
+    hole.style.top = pos.y + '%';
+    field.insertBefore(hole, document.getElementById('flash'));
+    state.holes.push({ id:i, x:pos.x, y:pos.y, occupied:false, el:hole });
+  });
+}
+
+function startGame(){
+  const cfg = GRADE_CONFIG[state.grade];
+  state.score = 0;
+  state.lives = 3;
+  state.combo = 1;
+  state.comboStreak = 0;
+  state.timeLeft = cfg.roundTime;
+  state.activeCreatures = {};
+  state.paused = false;
+
+  buildField();
+  updateHUD();
+
+  document.getElementById('hud-lives-block').style.display = cfg.hasLives ? 'flex' : 'none';
+  document.getElementById('combo-badge').classList.toggle('show', !!cfg.combo);
+  document.getElementById('hud-timer-label').textContent = 'Время: ' + cfg.roundTime + 'с';
+
+  showScreen('screen-game');
+
+  clearInterval(state.spawnTimer);
+  clearInterval(state.countdownTimer);
+  state.spawnTimer = setInterval(trySpawn, cfg.spawnInterval);
+  state.countdownTimer = setInterval(tickCountdown, 1000);
+}
+
+function restartSameGrade(){
+  startGame();
+}
+
+/* =========================================================
+   HUD
+   ========================================================= */
+function updateHUD(){
+  document.getElementById('hud-score').textContent = state.score;
+
+  const heartsWrap = document.getElementById('hud-hearts');
+  heartsWrap.innerHTML = '';
+  for(let i=0;i<3;i++){
+    const h = document.createElement('span');
+    h.className = 'heart' + (i < state.lives ? '' : ' lost');
+    h.textContent = '❤️';
+    heartsWrap.appendChild(h);
+  }
+
+  const cfg = GRADE_CONFIG[state.grade];
+  const pct = Math.max(0, (state.timeLeft / cfg.roundTime) * 100);
+  const bar = document.getElementById('hud-timer-bar');
+  bar.style.width = pct + '%';
+  bar.style.background = pct < 25 ? 'var(--red)' : (pct < 55 ? 'var(--amber)' : 'var(--green)');
+  document.getElementById('hud-timer-label').textContent = 'Время: ' + state.timeLeft + 'с';
+
+  const comboBadge = document.getElementById('combo-badge');
+  comboBadge.textContent = 'x' + state.combo;
+}
+
+function tickCountdown(){
+  if(state.paused) return;
+  state.timeLeft--;
+  updateHUD();
+  if(state.timeLeft <= 0){
+    endGame('time');
+  }
+}
+
+/* =========================================================
+   SPAWN LOGIC
+   ========================================================= */
+function trySpawn(){
+  if(state.paused) return;
+  const cfg = GRADE_CONFIG[state.grade];
+  const activeCount = Object.keys(state.activeCreatures).length;
+  if(activeCount >= cfg.maxActive) return;
+
+  const freeHoles = state.holes.filter(h => !h.occupied);
+  if(freeHoles.length === 0) return;
+
+  const hole = freeHoles[Math.floor(Math.random()*freeHoles.length)];
+  spawnCreature(hole, cfg);
+}
+
+function pickCategory(cfg){
+  const r = Math.random();
+  if(r < cfg.bombChance) return 'bomb';
+  return Math.random() < 0.5 ? 'battery' : 'bug';
+}
+
+function pickIcon(category, cfg){
+  const variants = ICONS[category];
+  if(cfg.iconMode === 'single') return variants[0];
+  if(cfg.iconMode === 'mostlyPrimary') return Math.random() < 0.78 ? variants[0] : variants[1];
+  return variants[Math.floor(Math.random()*2)];
+}
+
+function spawnCreature(hole, cfg){
+  hole.occupied = true;
+  const category = pickCategory(cfg);
+  const icon = pickIcon(category, cfg);
+
+  const el = document.createElement('div');
+  el.className = 'creature';
+  el.style.left = hole.x + '%';
+  el.style.top = hole.y + '%';
+  el.textContent = icon;
+
+  document.getElementById('field').appendChild(el);
+  requestAnimationFrame(() => el.classList.add('pop'));
+
+  el.addEventListener('mousedown', (e) => handleCreatureClick(e, hole.id, category));
+  el.addEventListener('contextmenu', (e) => e.preventDefault());
+
+  let hintTimeoutId = null;
+  const hintClass = HINT_CLASS[category]; // undefined для bomb — колец у бомбы никогда нет
+  if(hintClass){
+    if(cfg.hintMode === 'always'){
+      el.classList.add(hintClass);
+    } else if(cfg.hintMode === 'delayed'){
+      hintTimeoutId = setTimeout(() => el.classList.add(hintClass), cfg.hintDelay);
+    }
+    // hintMode === 'none' -> кольцо не добавляется вовсе
+  }
+
+  const timeoutId = setTimeout(() => removeCreature(hole.id, false), cfg.lifeTime);
+
+  state.activeCreatures[hole.id] = { category, el, timeoutId, hintTimeoutId };
+}
+
+function removeCreature(holeId, wasClicked){
+  const c = state.activeCreatures[holeId];
+  if(!c) return;
+  clearTimeout(c.timeoutId);
+  clearTimeout(c.hintTimeoutId);
+  c.el.classList.remove('pop');
+  c.el.classList.add('hiding');
+  setTimeout(() => c.el.remove(), 200);
+  delete state.activeCreatures[holeId];
+  const hole = state.holes.find(h => h.id === holeId);
+  if(hole) hole.occupied = false;
+}
+
+/* =========================================================
+   CLICK HANDLING
+   ========================================================= */
+function handleCreatureClick(e, holeId, category){
+  e.preventDefault();
+  e.stopPropagation();
+  if(state.paused) return;
+  const cfg = GRADE_CONFIG[state.grade];
+  const btn = e.button;
+
+  if(category === 'bomb'){
+    triggerMistake(cfg, e.clientX, e.clientY, 'Ой, закоротило!');
+    removeCreature(holeId, true);
+    return;
+  }
+
+  const needed = NEED_BUTTON[category];
+  if(btn === needed){
+    let gained = cfg.baseScore;
+    if(cfg.combo){
+      state.comboStreak++;
+      state.combo = Math.min(4, 1 + Math.floor(state.comboStreak/3));
+      gained = gained * state.combo;
+    }
+    state.score += gained;
+    showFloatText(e.clientX, e.clientY, '+' + gained, 'var(--green)');
+    updateHUD();
+    removeCreature(holeId, true);
+  } else {
+    triggerMistake(cfg, e.clientX, e.clientY, 'Не та кнопка!');
+    removeCreature(holeId, true);
+  }
+}
+
+function triggerMistake(cfg, clientX, clientY, msg){
+  showFloatText(clientX, clientY, msg, 'var(--red)');
+  if(cfg.combo){ state.combo = 1; state.comboStreak = 0; }
+
+  const flash = document.getElementById('flash');
+  flash.classList.add('on');
+  setTimeout(() => flash.classList.remove('on'), 120);
+
+  if(cfg.hasLives && cfg.mistakePenalty > 0){
+    state.lives -= cfg.mistakePenalty;
+    updateHUD();
+    if(state.lives <= 0){
+      endGame('lives');
+    }
+  } else {
+    updateHUD();
+  }
+}
+
+function showFloatText(clientX, clientY, text, color){
+  const field = document.getElementById('field');
+  const rect = field.getBoundingClientRect();
+  const t = document.createElement('div');
+  t.className = 'float-txt';
+  t.style.left = (clientX - rect.left) + 'px';
+  t.style.top = (clientY - rect.top) + 'px';
+  t.style.color = color;
+  t.textContent = text;
+  field.appendChild(t);
+  setTimeout(() => t.remove(), 700);
+}
+
+/* =========================================================
+   PAW CURSOR
+   ========================================================= */
+const field = document.getElementById('field');
+const paw = document.getElementById('paw-cursor');
+paw.innerHTML = pawSVG(46);
+field.addEventListener('mousemove', (e) => {
+  const rect = field.getBoundingClientRect();
+  paw.style.left = (e.clientX - rect.left) + 'px';
+  paw.style.top = (e.clientY - rect.top) + 'px';
+});
+field.addEventListener('mouseleave', () => {
+  paw.style.left = '-100px';
+  paw.style.top = '-100px';
+});
+field.addEventListener('contextmenu', (e) => e.preventDefault());
+
+/* =========================================================
+   HELP OVERLAY (pause mid-game)
+   ========================================================= */
+function openHelp(){
+  state.paused = true;
+  document.getElementById('help-visual').innerHTML =
+    mouseHintSVG('left', 56, 76) + mouseHintSVG('right', 56, 76);
+  document.getElementById('help-overlay').classList.add('show');
+}
+function closeHelp(){
+  state.paused = false;
+  document.getElementById('help-overlay').classList.remove('show');
+}
+
+/* =========================================================
+   END GAME
+   ========================================================= */
+function endGame(reason){
+  clearInterval(state.spawnTimer);
+  clearInterval(state.countdownTimer);
+  Object.keys(state.activeCreatures).forEach(id => removeCreature(Number(id), false));
+
+  if(state.score > state.bestScore) state.bestScore = state.score;
+
+  document.getElementById('end-reason').textContent =
+    reason === 'time' ? 'Время вышло' : 'Заряд лапы закончился';
+  document.getElementById('end-score').textContent = state.score;
+  document.getElementById('end-best').textContent = 'Лучший результат сессии: ' + state.bestScore;
+
+  showScreen('screen-end');
+}
+</script>
+</body>
+</html>
