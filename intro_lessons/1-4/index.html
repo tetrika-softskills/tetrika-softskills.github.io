@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мир Кодика</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --purple: #6B2AA0;
+    --purple-light: #9B4DD4;
+    --blue: #1E50B4;
+    --gold: #FFD700;
+    --green: #00C896;
+    --bg: #0D0B1E;
+    --card: rgba(255,255,255,0.15);
+    --card-border: rgba(255,255,255,0.35);
+  }
+
+  html, body {
+    background: #0D0B1E !important;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    color: white;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 80%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 60%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 50%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(150px 150px at 20% 20%, rgba(107,42,160,0.3) 0%, transparent 100%),
+      radial-gradient(200px 200px at 80% 80%, rgba(30,80,180,0.2) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .screen {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    padding: 20px 16px;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.4s ease;
+  }
+  .screen.active { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* KODIKA */
+  .kodika {
+    font-size: 72px;
+    text-align: center;
+    margin: 12px 0 6px;
+    animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 20px rgba(107,42,160,0.8));
+    line-height: 1;
+  }
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .kodika.shake { animation: shake 0.5s ease; }
+  @keyframes shake {
+    0%,100% { transform: rotate(0); }
+    25% { transform: rotate(-8deg); }
+    75% { transform: rotate(8deg); }
+  }
+  .kodika.spin { animation: spin 0.6s ease; }
+  @keyframes spin {
+    from { transform: rotate(0) scale(1); }
+    50% { transform: rotate(180deg) scale(1.2); }
+    to { transform: rotate(360deg) scale(1); }
+  }
+
+  /* BUBBLE */
+  .bubble {
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    border-radius: 18px;
+    padding: 14px 20px;
+    margin: 8px auto 16px;
+    max-width: 320px;
+    text-align: center;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.5;
+    box-shadow: 0 4px 20px rgba(107,42,160,0.4);
+    width: 100%;
+  }
+
+  /* STEPS */
+  .steps {
+    display: flex;
+    gap: 8px;
+    margin: 8px 0 4px;
+    justify-content: center;
+  }
+  .step-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    transition: all 0.3s;
+  }
+  .step-dot.active { background: var(--gold); box-shadow: 0 0 8px rgba(255,215,0,0.6); transform: scale(1.3); }
+  .step-dot.done { background: var(--green); }
+
+  /* SCREEN TITLE */
+  .screen-title {
+    font-size: 20px;
+    font-weight: 900;
+    text-align: center;
+    margin: 4px 0 2px;
+    background: linear-gradient(135deg, #FFD700, #FF6B9D);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .screen-subtitle {
+    font-size: 12px;
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  /* SECTION LABEL */
+  .section-label {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gold);
+    text-align: center;
+    margin: 10px 0 8px;
+    width: 100%;
+    max-width: 340px;
+  }
+
+  .section-divider {
+    width: 100%;
+    max-width: 340px;
+    height: 1px;
+    background: rgba(255,255,255,0.08);
+    margin: 8px 0;
+  }
+
+  /* CHOICES — 2 в ряд, читаемо */
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    max-width: 340px;
+    margin-bottom: 4px;
+  }
+  .choices.three-col {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .choice-btn {
+    background: rgba(255,255,255,0.12);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 14px;
+    padding: 12px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 70px;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+  .choice-btn .emoji {
+    font-size: 30px;
+    line-height: 1;
+    display: block;
+  }
+  .choices.three-col .choice-btn { font-size: 11px; padding: 10px 4px; }
+  .choices.three-col .choice-btn .emoji { font-size: 24px; }
+  .choice-btn:active { transform: scale(0.95); }
+  .choice-btn.selected {
+    background: linear-gradient(135deg, rgba(107,42,160,0.6), rgba(30,80,180,0.6));
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(255,215,0,0.25);
+  }
+
+  /* INPUT */
+  .custom-input-wrap {
+    width: 100%;
+    max-width: 340px;
+    margin: 8px 0 4px;
+  }
+  .custom-input {
+    width: 100%;
+    background: var(--card);
+    border: 2px solid var(--card-border);
+    border-radius: 14px;
+    padding: 11px 14px;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .custom-input:focus { border-color: var(--purple-light); }
+  .custom-input::placeholder { color: rgba(255,255,255,0.3); }
+
+  /* PROMPT RESULT */
+  .prompt-result {
+    display: none;
+    width: 100%;
+    max-width: 340px;
+    background: rgba(0,200,150,0.1);
+    border: 2px solid var(--green);
+    border-radius: 16px;
+    padding: 12px;
+    margin: 10px 0 6px;
+    animation: fadeIn 0.3s ease;
+  }
+  .prompt-result.show { display: block; }
+  .prompt-label {
+    font-size: 10px;
+    color: var(--green);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .prompt-text {
+    font-size: 12px;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+  .copy-btn {
+    background: var(--green);
+    color: #0D0B1E;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+  }
+  .copy-btn.copied { background: var(--gold); }
+
+  /* MAIN BUTTONS */
+  .main-btn {
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    border: none;
+    border-radius: 18px;
+    padding: 15px 20px;
+    color: white;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 900;
+    font-size: 16px;
+    cursor: pointer;
+    width: 100%;
+    max-width: 340px;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 20px rgba(107,42,160,0.4);
+  }
+  .main-btn:active { transform: scale(0.97); }
+  .main-btn.gold {
+    background: linear-gradient(135deg, #FFD700, #FF8C00);
+    color: #1a0a00;
+    box-shadow: 0 4px 20px rgba(255,215,0,0.35);
+  }
+
+  /* WELCOME */
+  .welcome-title {
+    font-size: 26px;
+    font-weight: 900;
+    text-align: center;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #FFD700, #FF6B9D, #9B4DD4);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .welcome-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  /* Desktop layout divs — mobile: stack vertically */
+  .desktop-layout {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 340px;
+  }
+  .desktop-left { width: 100%; display: flex; flex-direction: column; align-items: center; }
+  .desktop-right { width: 100%; display: flex; flex-direction: column; align-items: center; }
+
+  /* ═══════════════════════════════════
+     DESKTOP RESPONSIVE (768px+)
+  ═══════════════════════════════════ */
+  @media (min-width: 768px) {
+    .screen {
+      padding: 40px 24px;
+      justify-content: flex-start;
+    }
+
+    .desktop-layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      gap: 40px;
+      width: 100%;
+      max-width: 900px;
+      max-width: unset;
+      align-items: start;
+    }
+
+    .desktop-left {
+      position: sticky;
+      top: 40px;
+      align-items: center;
+    }
+
+    .desktop-right {
+      align-items: flex-start;
+    }
+
+    .desktop-right .screen-title { text-align: left; font-size: 26px; }
+    .desktop-right .screen-subtitle { text-align: left; }
+    .desktop-right .section-label { text-align: left; }
+
+    .kodika { font-size: 100px; }
+    .bubble { font-size: 16px; max-width: 240px; }
+
+    .choices {
+      max-width: 100%;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+    .choices.three-col {
+      grid-template-columns: repeat(4, 1fr);
+    }
+    .choices.three-col .choice-btn { font-size: 13px; padding: 12px 8px; }
+    .choices.three-col .choice-btn .emoji { font-size: 28px; }
+    .choice-btn { font-size: 14px; min-height: 80px; }
+    .choice-btn .emoji { font-size: 32px; }
+
+    .custom-input-wrap { max-width: 100%; }
+    .prompt-result { max-width: 100%; }
+    .section-divider { max-width: 100%; }
+    .section-label { max-width: 100%; }
+
+    .main-btn { max-width: 380px; font-size: 17px; padding: 16px 24px; }
+
+    #screen-welcome .kodika { font-size: 130px; }
+    .welcome-title { font-size: 38px; }
+    .welcome-sub { font-size: 16px; }
+    #screen-welcome .bubble { font-size: 18px; max-width: 420px; }
+    #screen-welcome .main-btn { max-width: 360px; font-size: 20px; padding: 20px; }
+
+    .passport-card { max-width: 500px; }
+    .passport-name { font-size: 32px; }
+    #screen-final .kodika { font-size: 110px; }
+  }
+
+  @media (min-width: 1200px) {
+    .desktop-layout { grid-template-columns: 300px 1fr; gap: 60px; }
+    .choices.three-col { grid-template-columns: repeat(5, 1fr); }
+  }
+
+  /* PASSPORT */
+  .passport-card {
+    background: linear-gradient(135deg, rgba(107,42,160,0.4), rgba(30,80,180,0.4));
+    border: 2px solid var(--gold);
+    border-radius: 22px;
+    padding: 20px;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    margin: 10px 0 16px;
+    box-shadow: 0 0 40px rgba(255,215,0,0.15);
+  }
+  .passport-title {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+  .passport-name { font-size: 24px; font-weight: 900; margin-bottom: 12px; }
+  .passport-field { font-size: 11px; color: rgba(255,255,255,0.5); margin-bottom: 2px; }
+  .passport-value { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+
+  /* CONFETTI */
+  .confetti-piece {
+    position: fixed;
+    animation: confettiFall linear forwards;
+    z-index: 100;
+    pointer-events: none;
+    border-radius: 2px;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* SPACER */
+  .spacer { height: 24px; width: 100%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<!-- ЭКРАН 0: ДОБРО ПОЖАЛОВАТЬ -->
+<div id="screen-welcome" class="screen active">
+  <div class="kodika" style="font-size:90px; margin-top:40px;">🤖</div>
+  <div class="welcome-title">Привет, я Кодик!</div>
+  <div class="welcome-sub">Цифровой мир ждёт тебя</div>
+  <div class="bubble">
+    Мой мир в опасности...<br>Мне нужен герой! 🆘
+  </div>
+  <button class="main-btn gold" onclick="goTo('screen-gender')" style="font-size:18px; padding:18px;">
+    ⚡ ПРИНЯТЬ МИССИЮ
+  </button>
+</div>
+
+<!-- ЭКРАН 0.5: ВЫБОР ПОЛА ГЕРОЯ -->
+<div id="screen-gender" class="screen">
+  <div class="kodika" style="font-size:90px; margin-top:20px;">🤖</div>
+  <div class="bubble">
+    Мой сканер настраивается...<br>Твой герой — мальчик или девочка? 🔍
+  </div>
+  <div class="screen-title">КТО ТВОЙ ГЕРОЙ?</div>
+  <div class="screen-subtitle">Это поможет правильно описать персонажа</div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:300px; margin-top:16px;">
+    <button class="choice-btn" onclick="selectGender('m')" id="gender-m" style="min-height:100px; font-size:14px;">
+      <span class="emoji">🦸‍♂️</span>Мальчик
+    </button>
+    <button class="choice-btn" onclick="selectGender('f')" id="gender-f" style="min-height:100px; font-size:14px;">
+      <span class="emoji">🦸‍♀️</span>Девочка
+    </button>
+  </div>
+  <button class="main-btn gold" onclick="goTo('screen-avatar')" style="margin-top:20px; max-width:300px;">
+    ➡️ Дальше!
+  </button>
+  <div class="spacer"></div>
+</div>
+
+<!-- ЭКРАН 1: АВАТАР -->
+<div id="screen-avatar" class="screen">
+  <div class="steps">
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+  <div class="desktop-layout">
+    <div class="desktop-left">
+      <div class="kodika shake">🤖</div>
+      <div class="bubble">Мой сканер включён!<br>Создай своего героя! 🎨</div>
+    </div>
+    <div class="desktop-right">
+      <div class="screen-title">КТО ТВОЙ ГЕРОЙ?</div>
+      <div class="screen-subtitle">Выбери или напиши своё</div>
+
+      <div class="section-label">🐾 Животные</div>
+      <div class="choices three-col" id="choices-who-animal">
+        <button class="choice-btn" onclick="select(this,'who','кошка','🐱')"><span class="emoji">🐱</span>Кошка</button>
+        <button class="choice-btn" onclick="select(this,'who','собака','🐶')"><span class="emoji">🐶</span>Собака</button>
+        <button class="choice-btn" onclick="select(this,'who','хомяк','🐹')"><span class="emoji">🐹</span>Хомяк</button>
+        <button class="choice-btn" onclick="select(this,'who','дракон','🐉')"><span class="emoji">🐉</span>Дракон</button>
+        <button class="choice-btn" onclick="select(this,'who','лиса','🦊')"><span class="emoji">🦊</span>Лиса</button>
+        <button class="choice-btn" onclick="select(this,'who','панда','🐼')"><span class="emoji">🐼</span>Панда</button>
+      </div>
+
+      <div class="section-label" style="margin-top:6px;">🦸 Герои</div>
+      <div class="choices three-col" id="choices-who-hero">
+        <button class="choice-btn" onclick="select(this,'who','робот','🤖')"><span class="emoji">🤖</span>Робот</button>
+        <button class="choice-btn" onclick="select(this,'who','супергерой','🦸')"><span class="emoji">🦸</span>Супергерой</button>
+        <button class="choice-btn" onclick="select(this,'who','волшебник','🧙')"><span class="emoji">🧙</span>Волшебник</button>
+        <button class="choice-btn" onclick="select(this,'who','рыцарь','⚔️')"><span class="emoji">⚔️</span>Рыцарь</button>
+        <button class="choice-btn" onclick="select(this,'who','пришелец','👽')"><span class="emoji">👽</span>Пришелец</button>
+        <button class="choice-btn" onclick="select(this,'who','ниндзя','🥷')"><span class="emoji">🥷</span>Ниндзя</button>
+      </div>
+
+      <div class="custom-input-wrap">
+        <input class="custom-input" id="input-who" placeholder="Или придумай своего..." oninput="customInput('who', this.value)">
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">💫 Характер</div>
+      <div class="choices" id="choices-trait">
+        <button class="choice-btn" onclick="select(this,'trait','смелый','💪')"><span class="emoji">💪</span>Смелый</button>
+        <button class="choice-btn" onclick="select(this,'trait','добрый','💚')"><span class="emoji">💚</span>Добрый</button>
+        <button class="choice-btn" onclick="select(this,'trait','умный','🧠')"><span class="emoji">🧠</span>Умный</button>
+        <button class="choice-btn" onclick="select(this,'trait','весёлый','😄')"><span class="emoji">😄</span>Весёлый</button>
+        <button class="choice-btn" onclick="select(this,'trait','загадочный','🌙')"><span class="emoji">🌙</span>Загадочный</button>
+        <button class="choice-btn" onclick="select(this,'trait','хитрый','😏')"><span class="emoji">😏</span>Хитрый</button>
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">🎨 Цвет героя / костюма</div>
+      <div class="choices three-col" id="choices-color">
+        <button class="choice-btn" onclick="select(this,'color','синий','💙')"><span class="emoji">💙</span>Синий</button>
+        <button class="choice-btn" onclick="select(this,'color','красный','❤️')"><span class="emoji">❤️</span>Красный</button>
+        <button class="choice-btn" onclick="select(this,'color','зелёный','💚')"><span class="emoji">💚</span>Зелёный</button>
+        <button class="choice-btn" onclick="select(this,'color','фиолетовый','💜')"><span class="emoji">💜</span>Фиолет.</button>
+        <button class="choice-btn" onclick="select(this,'color','золотой','💛')"><span class="emoji">💛</span>Золотой</button>
+        <button class="choice-btn" onclick="select(this,'color','оранжевый','🧡')"><span class="emoji">🧡</span>Оранжев.</button>
+        <button class="choice-btn" onclick="select(this,'color','чёрный','🖤')"><span class="emoji">🖤</span>Чёрный</button>
+        <button class="choice-btn" onclick="select(this,'color','белый','🤍')"><span class="emoji">🤍</span>Белый</button>
+        <button class="choice-btn" onclick="select(this,'color','радужный','🌈')"><span class="emoji">🌈</span>Радужный</button>
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">⚔️ Снаряжение</div>
+      <div class="choices three-col" id="choices-gear">
+        <button class="choice-btn" onclick="select(this,'gear','меч','⚔️')"><span class="emoji">⚔️</span>Меч</button>
+        <button class="choice-btn" onclick="select(this,'gear','крылья','🪶')"><span class="emoji">🪶</span>Крылья</button>
+        <button class="choice-btn" onclick="select(this,'gear','плащ','🦸')"><span class="emoji">🦸</span>Плащ</button>
+        <button class="choice-btn" onclick="select(this,'gear','рюкзак','🎒')"><span class="emoji">🎒</span>Рюкзак</button>
+        <button class="choice-btn" onclick="select(this,'gear','шляпа','🎩')"><span class="emoji">🎩</span>Шляпа</button>
+        <button class="choice-btn" onclick="select(this,'gear','лазер','🔫')"><span class="emoji">🔫</span>Лазер</button>
+      </div>
+
+      <div class="custom-input-wrap" style="margin-top:10px;">
+        <input class="custom-input" id="input-name" placeholder="Имя героя..." oninput="data.name = this.value">
+      </div>
+      <div class="custom-input-wrap">
+        <input class="custom-input" id="input-extra" placeholder="Добавь что-то своё..." oninput="data.extra = this.value">
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">🖌️ Стиль картинки</div>
+      <div class="choices" id="choices-style-avatar">
+        <button class="choice-btn" onclick="select(this,'styleAvatar','яркая детская иллюстрация','🎨')"><span class="emoji">🎨</span>Иллюстрация</button>
+        <button class="choice-btn" onclick="select(this,'styleAvatar','мультяшный 3D','🧊')"><span class="emoji">🧊</span>3D</button>
+        <button class="choice-btn" onclick="select(this,'styleAvatar','сказочный акварельный','🌸')"><span class="emoji">🌸</span>Акварель</button>
+        <button class="choice-btn" onclick="select(this,'styleAvatar','пиксельный арт','👾')"><span class="emoji">👾</span>Пиксели</button>
+      </div>
+
+      <div id="prompt-avatar" class="prompt-result">
+        <div class="prompt-label">📋 Промпт готов — скопируй и вставь в чат!</div>
+        <div class="prompt-text" id="prompt-avatar-text"></div>
+        <button class="copy-btn" id="copy-avatar-btn" onclick="copyPrompt('avatar')">📋 Скопировать</button>
+      </div>
+
+      <button class="main-btn" onclick="buildAvatarPrompt()">🚀 Отправить Кодику!</button>
+      <button class="main-btn gold" onclick="goTo('screen-world')">➡️ Дальше!</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<!-- ЭКРАН 2: МИР -->
+<div id="screen-world" class="screen">
+  <div class="steps">
+    <div class="step-dot done"></div>
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+    <div class="step-dot"></div>
+  </div>
+  <div class="desktop-layout">
+    <div class="desktop-left">
+      <div class="kodika">🤖</div>
+      <div class="bubble">Герой есть! Теперь<br>создай для него мир! 🌍</div>
+    </div>
+    <div class="desktop-right">
+      <div class="screen-title">ГДЕ ЖИВЁТ ГЕРОЙ?</div>
+      <div class="screen-subtitle">Выбери мир</div>
+
+      <div class="choices three-col" id="choices-world">
+        <button class="choice-btn" onclick="select(this,'world','волшебный лес','🌲')"><span class="emoji">🌲</span>Волшебный лес</button>
+        <button class="choice-btn" onclick="select(this,'world','космос','🌌')"><span class="emoji">🌌</span>Космос</button>
+        <button class="choice-btn" onclick="select(this,'world','город будущего','🏙️')"><span class="emoji">🏙️</span>Будущее</button>
+        <button class="choice-btn" onclick="select(this,'world','замок','🏰')"><span class="emoji">🏰</span>Замок</button>
+        <button class="choice-btn" onclick="select(this,'world','подводный мир','🌊')"><span class="emoji">🌊</span>Под водой</button>
+        <button class="choice-btn" onclick="select(this,'world','джунгли','🌴')"><span class="emoji">🌴</span>Джунгли</button>
+        <button class="choice-btn" onclick="select(this,'world','заснеженные горы','🏔️')"><span class="emoji">🏔️</span>Горы</button>
+        <button class="choice-btn" onclick="select(this,'world','вулканический остров','🌋')"><span class="emoji">🌋</span>Вулкан</button>
+        <button class="choice-btn" onclick="select(this,'world','пиксельный мир','👾')"><span class="emoji">👾</span>Пиксели</button>
+      </div>
+
+      <div class="custom-input-wrap">
+        <input class="custom-input" id="input-world" placeholder="Или придумай свой мир..." oninput="customInput('world', this.value)">
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">🌈 Настроение места</div>
+      <div class="choices" id="choices-mood">
+        <button class="choice-btn" onclick="select(this,'mood','доброе и яркое','☀️')"><span class="emoji">☀️</span>Доброе</button>
+        <button class="choice-btn" onclick="select(this,'mood','загадочное','🌙')"><span class="emoji">🌙</span>Загадочное</button>
+        <button class="choice-btn" onclick="select(this,'mood','приключенческое','⚡')"><span class="emoji">⚡</span>Приключение</button>
+        <button class="choice-btn" onclick="select(this,'mood','волшебное','✨')"><span class="emoji">✨</span>Волшебное</button>
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">🏃 Что делает герой?</div>
+      <div class="choices" id="choices-action">
+        <button class="choice-btn" onclick="select(this,'action','идёт навстречу приключению','🚶')"><span class="emoji">🚶</span>Идёт</button>
+        <button class="choice-btn" onclick="select(this,'action','летит','🦅')"><span class="emoji">🦅</span>Летит</button>
+        <button class="choice-btn" onclick="select(this,'action','ищет сокровище','🔍')"><span class="emoji">🔍</span>Ищет клад</button>
+        <button class="choice-btn" onclick="select(this,'action','спасает друга','🤝')"><span class="emoji">🤝</span>Спасает друга</button>
+      </div>
+
+      <div class="custom-input-wrap">
+        <input class="custom-input" id="input-world-extra" placeholder="Добавь деталь..." oninput="data.worldExtra = this.value">
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">🖌️ Стиль картинки</div>
+      <div class="choices" id="choices-style-world">
+        <button class="choice-btn" onclick="select(this,'styleWorld','яркая детская иллюстрация','🎨')"><span class="emoji">🎨</span>Иллюстрация</button>
+        <button class="choice-btn" onclick="select(this,'styleWorld','мультяшный 3D','🧊')"><span class="emoji">🧊</span>3D</button>
+        <button class="choice-btn" onclick="select(this,'styleWorld','сказочный акварельный','🌸')"><span class="emoji">🌸</span>Акварель</button>
+        <button class="choice-btn" onclick="select(this,'styleWorld','пиксельный арт','👾')"><span class="emoji">👾</span>Пиксели</button>
+      </div>
+
+      <div id="prompt-world" class="prompt-result">
+        <div class="prompt-label">📋 Промпт готов — скопируй и вставь в чат!</div>
+        <div class="prompt-text" id="prompt-world-text"></div>
+        <button class="copy-btn" id="copy-world-btn" onclick="copyPrompt('world')">📋 Скопировать</button>
+      </div>
+
+      <button class="main-btn" onclick="buildWorldPrompt()">🚀 Отправить Кодику!</button>
+      <button class="main-btn gold" onclick="goTo('screen-anim')">➡️ Дальше!</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<!-- ЭКРАН 2.5: АНИМАЦИЯ -->
+<div id="screen-anim" class="screen">
+  <div class="steps">
+    <div class="step-dot done"></div>
+    <div class="step-dot done"></div>
+    <div class="step-dot active"></div>
+    <div class="step-dot"></div>
+  </div>
+  <div class="desktop-layout">
+    <div class="desktop-left">
+      <div class="kodika spin">🤖</div>
+      <div class="bubble">Мир есть! Теперь<br>оживим героя! ⚡</div>
+    </div>
+    <div class="desktop-right">
+      <div class="screen-title">ОЖИВЛЯЕМ ГЕРОЯ</div>
+      <div class="screen-subtitle">Что сделает твой герой?</div>
+
+      <div class="section-label">🏃 Движение</div>
+      <div class="choices" id="choices-anim">
+        <button class="choice-btn" onclick="select(this,'anim','машет рукой','👋')"><span class="emoji">👋</span>Машет рукой</button>
+        <button class="choice-btn" onclick="select(this,'anim','подпрыгивает','⬆️')"><span class="emoji">⬆️</span>Подпрыгивает</button>
+        <button class="choice-btn" onclick="select(this,'anim','улыбается','😄')"><span class="emoji">😄</span>Улыбается</button>
+        <button class="choice-btn" onclick="select(this,'anim','идёт вперёд','🚶')"><span class="emoji">🚶</span>Идёт вперёд</button>
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">✨ Как двигается</div>
+      <div class="choices" id="choices-anim-style">
+        <button class="choice-btn" onclick="select(this,'animStyle','весело','😄')"><span class="emoji">😄</span>Весело</button>
+        <button class="choice-btn" onclick="select(this,'animStyle','плавно','🌊')"><span class="emoji">🌊</span>Плавно</button>
+        <button class="choice-btn" onclick="select(this,'animStyle','смело','💪')"><span class="emoji">💪</span>Смело</button>
+        <button class="choice-btn" onclick="select(this,'animStyle','легко','🪶')"><span class="emoji">🪶</span>Легко</button>
+      </div>
+
+      <div id="prompt-anim" class="prompt-result">
+        <div class="prompt-label">📋 Промпт готов — скопируй и вставь в чат!</div>
+        <div class="prompt-text" id="prompt-anim-text"></div>
+        <button class="copy-btn" id="copy-anim-btn" onclick="copyPrompt('anim')">📋 Скопировать</button>
+      </div>
+
+      <button class="main-btn" onclick="buildAnimPrompt()">⚡ Оживить героя!</button>
+      <button class="main-btn gold" onclick="goTo('screen-song')">➡️ Дальше!</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<!-- ЭКРАН 3: ПЕСНЯ -->
+<div id="screen-song" class="screen">
+  <div class="steps">
+    <div class="step-dot done"></div>
+    <div class="step-dot done"></div>
+    <div class="step-dot done"></div>
+    <div class="step-dot active"></div>
+  </div>
+  <div class="desktop-layout">
+    <div class="desktop-left">
+      <div class="kodika spin">🤖</div>
+      <div class="bubble">Мир появился! Теперь<br>нужна песня! 🎵</div>
+    </div>
+    <div class="desktop-right">
+      <div class="screen-title">ПЕСНЯ ГЕРОЯ</div>
+      <div class="screen-subtitle">Какой будет песня?</div>
+
+      <div class="section-label">🎭 Настроение</div>
+      <div class="choices" id="choices-songMood">
+        <button class="choice-btn" onclick="select(this,'songMood','весёлая','😄')"><span class="emoji">😄</span>Весёлая</button>
+        <button class="choice-btn" onclick="select(this,'songMood','волшебная','✨')"><span class="emoji">✨</span>Волшебная</button>
+        <button class="choice-btn" onclick="select(this,'songMood','приключенческая','⚡')"><span class="emoji">⚡</span>Приключение</button>
+        <button class="choice-btn" onclick="select(this,'songMood','смешная','😂')"><span class="emoji">😂</span>Смешная</button>
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">🥁 Ритм</div>
+      <div class="choices" id="choices-rhythm">
+        <button class="choice-btn" onclick="select(this,'rhythm','быстрый','🏃')"><span class="emoji">🏃</span>Быстрый</button>
+        <button class="choice-btn" onclick="select(this,'rhythm','спокойный','🌊')"><span class="emoji">🌊</span>Спокойный</button>
+      </div>
+
+      <div class="section-divider"></div>
+      <div class="section-label">🎤 Фраза для припева</div>
+      <div class="choices" id="choices-chorus">
+        <button class="choice-btn" onclick="select(this,'chorus','Вперёд, герой, лети!','🚀')"><span class="emoji">🚀</span>«Вперёд, лети!»</button>
+        <button class="choice-btn" onclick="select(this,'chorus','Мир спасён, ура!','🎉')"><span class="emoji">🎉</span>«Мир спасён!»</button>
+      </div>
+
+      <div class="custom-input-wrap">
+        <input class="custom-input" id="input-chorus" placeholder="Придумай свою фразу для припева..." oninput="data.chorus = this.value; clearGroupSel('choices-chorus')">
+      </div>
+
+      <div id="prompt-song" class="prompt-result">
+        <div class="prompt-label">📋 Промпт готов — скопируй и вставь в чат!</div>
+        <div class="prompt-text" id="prompt-song-text"></div>
+        <button class="copy-btn" id="copy-song-btn" onclick="copyPrompt('song')">📋 Скопировать</button>
+      </div>
+
+      <button class="main-btn" onclick="buildSongPrompt()">🎵 Отправить Кодику!</button>
+      <button class="main-btn gold" onclick="goTo('screen-final')">➡️ Дальше!</button>
+    </div>
+  </div>
+  <div class="spacer"></div>
+</div>
+
+<!-- ЭКРАН 4: ФИНАЛ -->
+<div id="screen-final" class="screen">
+  <div class="kodika" style="font-size:90px; margin-top:30px;">🎉</div>
+  <div class="bubble" style="background: linear-gradient(135deg, #FFD700, #FF8C00); color: #1a0a00;">
+    МОЙ МИР ВОССТАНОВЛЕН!<br>Ты настоящий герой! ⭐
+  </div>
+  <div class="passport-card">
+    <div class="passport-title">🌟 Цифровой паспорт 🌟</div>
+    <div class="passport-name" id="final-name">—</div>
+    <div class="passport-field">Кто</div>
+    <div class="passport-value" id="final-who">—</div>
+    <div class="passport-field">Характер</div>
+    <div class="passport-value" id="final-trait">—</div>
+    <div class="passport-field">Мир</div>
+    <div class="passport-value" id="final-world">—</div>
+    <div class="passport-field">Снаряжение</div>
+    <div class="passport-value" id="final-gear">—</div>
+  </div>
+  <button class="main-btn gold" onclick="celebrate()" style="font-size:17px; padding:16px;">
+    🎊 УРА! МЫ СДЕЛАЛИ ЭТО!
+  </button>
+  <div class="spacer"></div>
+</div>
+
+<script>
+const data = {
+  who:'', whoEmoji:'', trait:'', traitEmoji:'',
+  color:'', colorEmoji:'', gear:'', gearEmoji:'',
+  name:'', extra:'',
+  world:'', worldEmoji:'', mood:'', moodEmoji:'',
+  action:'', actionEmoji:'', worldExtra:'',
+  anim:'', animEmoji:'', animStyle:'', animStyleEmoji:'',
+  styleAvatar:'яркая детская иллюстрация',
+  styleWorld:'яркая детская иллюстрация',
+  songMood:'', rhythm:'', chorus:'',
+  gender: 'm'
+};
+
+// Хелперы для адаптации текста под пол
+function он() { return data.gender === 'f' ? 'Она' : 'Он'; }
+function его() { return data.gender === 'f' ? 'её' : 'его'; }
+function у_него() { return data.gender === 'f' ? 'У неё' : 'У него'; }
+function герой_слово() { return data.gender === 'f' ? 'героиня' : 'герой'; }
+function adj(m, f) { return data.gender === 'f' ? f : m; } // прилагательное м/ж род
+function про_кого() { return data.gender === 'f' ? 'про' : 'про'; } // одинаково
+
+// Адаптация прилагательных характера под пол
+function adaptTrait(trait) {
+  if (data.gender !== 'f') return trait;
+  const map = {
+    'смелый':'смелая','добрый':'добрая','умный':'умная','весёлый':'весёлая',
+    'загадочный':'загадочная','хитрый':'хитрая'
+  };
+  return map[trait] || trait;
+}
+
+// Адаптация цвета (прилагательное)
+function adaptColor(color) {
+  if (data.gender !== 'f') return color;
+  const map = {
+    'синий':'синяя','красный':'красная','зелёный':'зелёная','фиолетовый':'фиолетовая',
+    'золотой':'золотая','оранжевый':'оранжевая','чёрный':'чёрная','белый':'белая','радужный':'радужная'
+  };
+  return map[color] || color;
+}
+
+function selectGender(g) {
+  data.gender = g;
+  document.getElementById('gender-m').classList.toggle('selected', g === 'm');
+  document.getElementById('gender-f').classList.toggle('selected', g === 'f');
+}
+
+function goTo(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+  if (id === 'screen-final') fillPassport();
+}
+
+function select(btn, key, value, emoji) {
+  document.querySelectorAll('[id^="choices-' + key + '"] .choice-btn, #choices-who-animal .choice-btn, #choices-who-hero .choice-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + key + "'")) {
+      b.classList.remove('selected');
+    }
+  });
+  btn.classList.add('selected');
+  data[key] = value;
+  data[key + 'Emoji'] = emoji || '';
+  // Для стилей обновляем напрямую
+  if (key === 'styleAvatar') data.styleAvatar = value;
+  if (key === 'styleWorld') data.styleWorld = value;
+  const inp = document.getElementById('input-' + key);
+  if (inp) inp.value = '';
+}
+
+function customInput(key, value) {
+  data[key] = value;
+  document.querySelectorAll('.choice-btn').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + key + "'")) {
+      b.classList.remove('selected');
+    }
+  });
+}
+
+function clearGroupSel(groupId) {
+  const g = document.getElementById(groupId);
+  if (g) g.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+}
+
+// Список героев (не животных) — для них цвет это костюм
+const HEROES = ['робот','супергерой','волшебник','рыцарь','пришелец','ниндзя'];
+
+function isHero(who) {
+  return HEROES.some(h => who && who.toLowerCase().includes(h));
+}
+
+// Цвет в предложном падеже для костюма
+function colorInCostume(color) {
+  const map = {
+    'синий':'синем','красный':'красном','зелёный':'зелёном',
+    'фиолетовый':'фиолетовом','золотой':'золотом','оранжевый':'оранжевом',
+    'чёрный':'чёрном','белый':'белом','радужный':'радужном',
+    'синяя':'синем','красная':'красном','зелёная':'зелёном',
+    'фиолетовая':'фиолетовом','золотая':'золотом','оранжевая':'оранжевом',
+    'чёрная':'чёрном','белая':'белом','радужная':'радужном',
+  };
+  return map[color] || color;
+}
+
+function buildAvatarPrompt() {
+  const who = data.who || (data.gender === 'f' ? 'героиня' : 'герой');
+  const trait = adaptTrait(data.trait || 'смелый');
+  const rawColor = data.color || 'яркий';
+  const color = adaptColor(rawColor);
+  const gear = data.gear || '';
+  const name = data.name || document.getElementById('input-name').value || 'Герой';
+  const extra = data.extra || document.getElementById('input-extra').value || '';
+  const style = data.styleAvatar || 'яркая детская иллюстрация';
+  data.name = name;
+
+  const he = data.gender === 'f' ? 'Она' : 'Он';
+  const hasGear = data.gender === 'f' ? 'У неё есть' : 'У него есть';
+
+  let colorPart;
+  if (isHero(who)) {
+    colorPart = `${who} по имени ${name} в ${colorInCostume(color)} костюме`;
+  } else {
+    colorPart = `${color} ${who} по имени ${name}`;
+  }
+
+  let p = `Создай персонажа на белом фоне. Это ${colorPart}. ${he} ${trait}.`;
+  if (gear) p += ` ${hasGear} ${gear}.`;
+  if (extra) p += ` ${extra}.`;
+  p += ` Стиль — ${style}, мультяшный и милый.`;
+
+  show('avatar', p);
+}
+
+function buildWorldPrompt() {
+  const who = data.who || (data.gender === 'f' ? 'героиня' : 'герой');
+  const name = data.name || 'Герой';
+  const rawColor = data.color || '';
+  const color = adaptColor(rawColor);
+  const gear = data.gear || '';
+  const world = data.world || document.getElementById('input-world').value || 'волшебный мир';
+  const mood = data.mood || 'волшебное';
+  const action = data.action || 'стоит';
+  const extra = data.worldExtra || document.getElementById('input-world-extra').value || '';
+  const style = data.styleWorld || 'яркая детская иллюстрация';
+  const heIs = data.gender === 'f' ? 'Она находится' : 'Он находится';
+  const heAction = data.gender === 'f' ? 'Она' : 'Он';
+
+  // Для мирового промпта тоже различаем героев и животных
+  let whoPart;
+  if (isHero(who) && color) {
+    whoPart = `${who} по имени ${name} в ${colorInCostume(color)} костюме`;
+  } else {
+    whoPart = `${color ? color + ' ' : ''}${who} по имени ${name}`;
+  }
+  if (gear) whoPart += ` с ${gear}`;
+
+  let p = `Создай картинку с персонажем. Это ${whoPart}. ${heIs} в ${world}. ${heAction} ${action}. Настроение картинки ${mood}.`;
+  if (extra) p += ` ${extra}.`;
+  p += ` Стиль — ${style}, мультяшный.`;
+
+  show('world', p);
+}
+
+function buildAnimPrompt() {
+  const name = data.name || 'Герой';
+  const who = data.who || (data.gender === 'f' ? 'героиня' : 'герой');
+  const anim = data.anim || 'машет рукой';
+  const animStyle = data.animStyle || 'плавно';
+  const he = data.gender === 'f' ? 'Она' : 'Он';
+
+  const p = `Оживи изображение. ${who} по имени ${name} ${anim}. ${he} делает это ${animStyle}. Персонаж сохраняет свой внешний вид, одежду и предметы. Фон остаётся таким же. Анимация плавная без резких рывков.`;
+
+  show('anim', p);
+}
+
+function buildSongPrompt() {
+  const name = data.name || 'Герой';
+  const who = data.who || (data.gender === 'f' ? 'героиня' : 'герой');
+  const trait = adaptTrait(data.trait || 'смелый');
+  const world = data.world || 'волшебный мир';
+  const mood = data.songMood || 'весёлая';
+  const rhythm = data.rhythm || 'быстрый';
+  const chorus = data.chorus || document.getElementById('input-chorus').value || 'Вперёд, герой, лети!';
+  const kto = data.gender === 'f' ? 'которая' : 'который';
+  const glavnaya = data.gender === 'f' ? 'Главная черта героини' : 'Главная черта героя';
+
+  const p = `Напиши детскую ${mood} песню про ${who} по имени ${name}, ${kto} живёт в ${world}. ${glavnaya} — ${trait}. Ритм ${rhythm}. Припев: «${chorus}». Стиль — детский, ${mood}.`;
+
+  show('song', p);
+}
+
+function show(type, text) {
+  document.getElementById('prompt-' + type + '-text').textContent = text;
+  document.getElementById('prompt-' + type).classList.add('show');
+  const btn = document.getElementById('copy-' + type + '-btn');
+  btn.textContent = '📋 Скопировать';
+  btn.classList.remove('copied');
+}
+
+function copyPrompt(type) {
+  const text = document.getElementById('prompt-' + type + '-text').textContent;
+  const btn = document.getElementById('copy-' + type + '-btn');
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ Скопировано!';
+    btn.classList.add('copied');
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✅ Скопировано!';
+    btn.classList.add('copied');
+  });
+}
+
+function fillPassport() {
+  const name = data.name || document.getElementById('input-name')?.value || 'Герой';
+  document.getElementById('final-name').textContent = name + ' ' + (data.whoEmoji || '⭐');
+  document.getElementById('final-who').textContent = (data.whoEmoji||'') + ' ' + (data.who||'—');
+  document.getElementById('final-trait').textContent = (data.traitEmoji||'') + ' ' + (data.trait||'—');
+  document.getElementById('final-world').textContent = (data.worldEmoji||'') + ' ' + (data.world||'—');
+  document.getElementById('final-gear').textContent = (data.gearEmoji||'') + ' ' + (data.gear||'—');
+}
+
+function celebrate() {
+  const colors = ['#FFD700','#FF6B9D','#9B4DD4','#00C896','#4A90E2','#FF8C00','#FF4444'];
+  for (let i = 0; i < 80; i++) {
+    setTimeout(() => {
+      const el = document.createElement('div');
+      el.style.cssText = `
+        position: fixed;
+        top: -20px;
+        left: ${Math.random()*100}vw;
+        width: ${Math.random()*8+5}px;
+        height: ${Math.random()*8+5}px;
+        background: ${colors[Math.floor(Math.random()*colors.length)]};
+        border-radius: ${Math.random()>.5 ? '50%' : '2px'};
+        pointer-events: none;
+        z-index: 9999;
+        animation: confettiFall ${Math.random()*2+2}s linear ${Math.random()*0.5}s forwards;
+      `;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3500);
+    }, i * 25);
+  }
+}
+</script>
+</body>
+</html>
