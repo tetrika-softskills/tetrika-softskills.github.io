@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>CITY RUSH</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #87CEEB; }
+        #game-canvas { display: block; width: 100vw; height: 100vh; }
+        
+        /* HUD */
+        #hud {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            z-index: 10;
+            color: #1a2a3a;
+            font-weight: 800;
+            text-shadow: 0 2px 12px rgba(255,255,240,0.6);
+            backdrop-filter: blur(4px);
+            background: rgba(255,255,245,0.2);
+            border-bottom: 1px solid rgba(255,255,240,0.3);
+        }
+        #hud > div {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255,255,245,0.5);
+            backdrop-filter: blur(8px);
+            padding: 10px 22px;
+            border-radius: 60px;
+            border: 1px solid rgba(255,255,240,0.5);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+            font-size: 1.4rem;
+            letter-spacing: 0.5px;
+        }
+        #hud .icon-coin {
+            display: inline-block;
+            width: 28px;
+            height: 28px;
+            background: radial-gradient(circle at 30% 30%, #ffdd44, #e6a800);
+            border-radius: 50%;
+            box-shadow: 0 0 12px #f0b300;
+            margin-right: 4px;
+        }
+        #hud span { font-weight: 300; color: #2d4055; }
+        #score-display { min-width: 110px; }
+        #coin-display { min-width: 110px; }
+        #speed-display { min-width: 120px; }
+        @media (max-width: 600px) {
+            #hud { padding: 12px 14px; flex-wrap: wrap; gap: 6px; }
+            #hud > div { padding: 6px 14px; font-size: 1rem; gap: 6px; }
+            #hud .icon-coin { width: 20px; height: 20px; }
+        }
+
+        /* Overlay */
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 215, 120, 0.25);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            color: #1f2e3b;
+            text-align: center;
+            padding: 20px;
+            transition: opacity 0.4s ease;
+        }
+        #overlay.hidden { opacity: 0; pointer-events: none; }
+        #overlay h1 {
+            font-size: 6rem;
+            font-weight: 900;
+            letter-spacing: 6px;
+            text-shadow: 0 8px 30px rgba(0,0,0,0.1);
+            color: #f5f0e8;
+            background: linear-gradient(135deg, #f9e3a0, #e8b84b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.3em;
+        }
+        #overlay .sub {
+            font-size: 2rem;
+            font-weight: 600;
+            background: rgba(0,0,0,0.1);
+            padding: 8px 32px;
+            border-radius: 60px;
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255,255,200,0.4);
+            color: #2d3c4a;
+        }
+        #overlay .final-score {
+            font-size: 2.4rem;
+            margin: 20px 0 30px;
+            background: rgba(255,255,240,0.3);
+            padding: 10px 40px;
+            border-radius: 60px;
+            backdrop-filter: blur(2px);
+        }
+        #overlay .blink {
+            animation: blink 1.4s infinite;
+            font-size: 1.8rem;
+            font-weight: 500;
+            letter-spacing: 2px;
+            background: rgba(0,0,0,0.05);
+            padding: 12px 32px;
+            border-radius: 60px;
+            border: 1px solid rgba(255,255,200,0.3);
+            backdrop-filter: blur(2px);
+            margin-top: 10px;
+        }
+        @keyframes blink { 0%,100%{ opacity: 1; } 50%{ opacity: 0.25; } }
+        #loader {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #87CEEB;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.6s;
+            flex-direction: column;
+            gap: 30px;
+        }
+        #loader.hidden { opacity: 0; pointer-events: none; }
+        .spinner {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            border: 6px solid rgba(255,255,240,0.3);
+            border-top: 6px solid #f5c542;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        #loader p { color: #2d4055; font-weight: 600; font-size: 1.4rem; letter-spacing: 2px; }
+        @media (max-width: 600px) {
+            #overlay h1 { font-size: 3.8rem; }
+            #overlay .sub { font-size: 1.4rem; padding: 4px 20px; }
+            #overlay .final-score { font-size: 1.6rem; padding: 6px 24px; }
+            #overlay .blink { font-size: 1.2rem; padding: 8px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="loader"><div class="spinner"></div><p>ЗАГРУЗКА ГОРОДА</p></div>
+    <div id="overlay"><h1>CITY RUSH</h1><div class="sub">✦ бесконечный бег ✦</div><div class="final-score" id="final-score">0</div><div class="blink">▶ НАЖМИ ПРОБЕЛ ИЛИ ТАПНИ ◀</div></div>
+    <div id="hud">
+        <div id="score-display">🏁 <span id="score-value">0</span></div>
+        <div id="coin-display"><span class="icon-coin"></span> <span id="coin-value">0</span></div>
+        <div id="speed-display">⚡ <span id="speed-value">0</span> km/h</div>
+    </div>
+    <canvas id="game-canvas"></canvas>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.152.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.152.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+        // --- SETUP ---
+        const canvas = document.getElementById('game-canvas');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 50, 120);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 200);
+        camera.position.set(0, 8, 14);
+
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+
+        // --- LIGHTS ---
+        const hemi = new THREE.HemisphereLight(0x87CEEB, 0x3a2a1a, 0.9);
+        scene.add(hemi);
+        const ambient = new THREE.AmbientLight(0x404060, 0.4);
+        scene.add(ambient);
+        const sun = new THREE.DirectionalLight(0xffeedd, 2.2);
+        sun.position.set(30, 40, 20);
+        sun.castShadow = true;
+        sun.shadow.mapSize.width = 2048;
+        sun.shadow.mapSize.height = 2048;
+        sun.shadow.camera.near = 0.5;
+        sun.shadow.camera.far = 100;
+        sun.shadow.camera.left = -40;
+        sun.shadow.camera.right = 40;
+        sun.shadow.camera.top = 40;
+        sun.shadow.camera.bottom = -40;
+        scene.add(sun);
+        const fill = new THREE.DirectionalLight(0xaaccff, 0.3);
+        fill.position.set(-20, 10, -30);
+        scene.add(fill);
+
+        // --- STATE ---
+        const state = {
+            score: 0,
+            coins: 0,
+            speed: 12,
+            maxSpeed: 35,
+            lane: 1, // 0,1,2
+            targetLane: 1,
+            laneWidth: 3.2,
+            isJumping: false,
+            velocityY: 0,
+            gravity: -28,
+            playerBaseY: 0,
+            gameOver: false,
+            isPlaying: false,
+            distance: 0,
+            roadOffset: 0,
+            segments: [],
+            buildings: [],
+            obstacles: [],
+            coinObjects: [],
+            particles: [],
+            clock: new THREE.Clock(),
+            playerModel: null,
+            mixer: null,
+            action: null,
+            moveSmooth: 0,
+        };
+
+        // --- GROUND & ROAD (infinite segments) ---
+        const roadLength = 40;
+        const roadWidth = 10;
+        const numSegments = 8;
+
+        function createRoadSegment(z) {
+            const group = new THREE.Group();
+            // asphalt
+            const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.9, metalness: 0.1 });
+            const road = new THREE.Mesh(new THREE.BoxGeometry(roadWidth, 0.2, roadLength), asphaltMat);
+            road.position.set(0, -0.1, 0);
+            road.receiveShadow = true;
+            road.castShadow = false;
+            group.add(road);
+
+            // side lines (white)
+            const lineMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, emissive: 0x444444, emissiveIntensity: 0.2 });
+            for (let side = -1; side <= 1; side+=2) {
+                const line = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.05, roadLength-1), lineMat);
+                line.position.set(side * (roadWidth/2 - 0.4), 0.05, 0);
+                line.receiveShadow = true;
+                group.add(line);
+            }
+
+            // dashed lines (yellow, emissive)
+            const dashMat = new THREE.MeshStandardMaterial({ color: 0xffcc44, emissive: 0xffaa00, emissiveIntensity: 0.5 });
+            for (let lane = -1; lane <= 1; lane+=2) {
+                for (let i = -roadLength/2 + 2; i < roadLength/2 - 2; i += 3.5) {
+                    const dash = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 1.8), dashMat);
+                    dash.position.set(lane * (roadWidth/4), 0.05, i);
+                    dash.receiveShadow = true;
+                    group.add(dash);
+                }
+            }
+
+            // curbs & sidewalks
+            const curbMat = new THREE.MeshStandardMaterial({ color: 0x7a7a7a, roughness: 0.7 });
+            const sideMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.6 });
+            for (let side = -1; side <= 1; side+=2) {
+                const curb = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, roadLength), curbMat);
+                curb.position.set(side * (roadWidth/2 + 0.2), 0.15, 0);
+                curb.receiveShadow = true;
+                curb.castShadow = true;
+                group.add(curb);
+                const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.15, roadLength), sideMat);
+                sidewalk.position.set(side * (roadWidth/2 + 1.0), 0.075, 0);
+                sidewalk.receiveShadow = true;
+                sidewalk.castShadow = true;
+                group.add(sidewalk);
+            }
+
+            group.position.set(0, 0, z);
+            return group;
+        }
+
+        // --- BUILDINGS (procedural) ---
+        function createBuilding(x, z, w, h, d) {
+            const color = new THREE.Color().setHSL(0.08, 0.05, 0.5 + Math.random()*0.25);
+            const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.1 });
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+            mesh.position.set(x, h/2, z);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = { baseX: x, baseZ: z, width: w, height: h, depth: d };
+
+            // windows (emissive stripes)
+            const winMat = new THREE.MeshStandardMaterial({ color: 0x88bbff, emissive: 0x4488cc, emissiveIntensity: 0.2 });
+            const winGroup = new THREE.Group();
+            const rows = Math.floor(h / 2.8);
+            const cols = Math.floor(w / 2.2);
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (Math.random() > 0.3) continue;
+                    const win = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.2), winMat);
+                    win.position.set(-w/2 + 1.2 + c*2.0, -h/2 + 1.8 + r*2.6, d/2 + 0.01);
+                    winGroup.add(win);
+                    const winBack = win.clone();
+                    winBack.position.z = -d/2 - 0.01;
+                    winBack.rotation.y = Math.PI;
+                    winGroup.add(winBack);
+                }
+            }
+            mesh.add(winGroup);
+            return mesh;
+        }
+
+        function generateBuildingsAround(z) {
+            const group = new THREE.Group();
+            const count = 12 + Math.floor(Math.random()*8);
+            for (let i = 0; i < count; i++) {
+                const side = Math.random() > 0.5 ? 1 : -1;
+                const x = side * (roadWidth/2 + 2.8 + Math.random() * 8);
+                const zOffset = (Math.random() - 0.5) * roadLength * 0.9;
+                const w = 1.8 + Math.random() * 3.2;
+                const h = 4 + Math.random() * 16;
+                const d = 1.8 + Math.random() * 3.5;
+                const b = createBuilding(x, z + zOffset, w, h, d);
+                group.add(b);
+            }
+            return group;
+        }
+
+        // --- LAMP POSTS ---
+        function createLampPost(z, xSide) {
+            const g = new THREE.Group();
+            const poleMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a, roughness: 0.6, metalness: 0.3 });
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.16, 3.2), poleMat);
+            pole.position.set(0, 1.6, 0);
+            pole.castShadow = true;
+            pole.receiveShadow = true;
+            g.add(pole);
+            const arm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 0.08), poleMat);
+            arm.position.set(0.3, 3.2, 0);
+            arm.castShadow = true;
+            arm.receiveShadow = true;
+            g.add(arm);
+            const sphereMat = new THREE.MeshStandardMaterial({ color: 0xffdd44, emissive: 0xffaa22, emissiveIntensity: 0.8 });
+            const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.25, 12, 12), sphereMat);
+            sphere.position.set(0.6, 3.15, 0);
+            sphere.castShadow = true;
+            g.add(sphere);
+            g.position.set(xSide * (roadWidth/2 + 0.7), 0, z);
+            return g;
+        }
+
+        // --- OBSTACLES ---
+        function createObstacle(type, lane) {
+            const g = new THREE.Group();
+            const color = type === 'low' ? 0xff8833 : 0xff5533;
+            const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.15, roughness: 0.4 });
+            let mesh;
+            if (type === 'low') {
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 0.8), mat);
+                mesh.position.y = 0.4;
+            } else {
+                mesh = new THREE.Mesh(new THREE.BoxGeometry(0.9, 2.0, 0.9), mat);
+                mesh.position.y = 1.0;
+            }
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            g.add(mesh);
+            const x = (lane - 1) * state.laneWidth;
+            g.position.set(x, 0, 0);
+            return g;
+        }
+
+        function createCoin() {
+            const g = new THREE.Group();
+            const mat = new THREE.MeshStandardMaterial({ color: 0xffcc44, emissive: 0xffaa00, emissiveIntensity: 0.3, metalness: 0.7, roughness: 0.2 });
+            const mesh = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.12, 16), mat);
+            mesh.rotation.x = Math.PI/2;
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            g.add(mesh);
+            return g;
+        }
+
+        // --- INIT WORLD ---
+        const roadGroup = new THREE.Group();
+        scene.add(roadGroup);
+        const buildingGroup = new THREE.Group();
+        scene.add(buildingGroup);
+        const lampGroup = new THREE.Group();
+        scene.add(lampGroup);
+        const obstacleGroup = new THREE.Group();
+        scene.add(obstacleGroup);
+        const coinGroup = new THREE.Group();
+        scene.add(coinGroup);
+
+        const segmentData = [];
+        const buildingData = [];
+
+        function initRoad() {
+            for (let i = 0; i < numSegments; i++) {
+                const z = i * roadLength - roadLength * 2;
+                const seg = createRoadSegment(z);
+                roadGroup.add(seg);
+                segmentData.push({ mesh: seg, z: z });
+
+                // buildings
+                const bGroup = generateBuildingsAround(z);
+                buildingGroup.add(bGroup);
+                buildingData.push({ group: bGroup, z: z });
+
+                // lamps
+                for (let side = -1; side <= 1; side+=2) {
+                    if (Math.random() > 0.4) continue;
+                    const lamp = createLampPost(z + (Math.random()-0.5)*4, side);
+                    lampGroup.add(lamp);
+                }
+
+                // initial obstacles & coins (sparse)
+                if (i > 2 && i < 6) {
+                    const lane = Math.floor(Math.random()*3);
+                    const obs = createObstacle(Math.random()>0.5?'low':'high', lane);
+                    obs.position.z = z + (Math.random()-0.5)*10;
+                    obstacleGroup.add(obs);
+                    state.obstacles.push(obs);
+                }
+                if (i > 1 && i < 5) {
+                    const coin = createCoin();
+                    const lane = Math.floor(Math.random()*3);
+                    coin.position.set((lane-1)*state.laneWidth, 1.2, z + (Math.random()-0.5)*8);
+                    coinGroup.add(coin);
+                    state.coinObjects.push(coin);
+                }
+            }
+        }
+        initRoad();
+
+        // --- PLAYER (GLTF or fallback) ---
+        const playerGroup = new THREE.Group();
+        scene.add(playerGroup);
+        let playerCapsuleFallback = null;
+
+        function createFallbackPlayer() {
+            const g = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3a7bd5, roughness: 0.3, metalness: 0.1 });
+            const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.6, 1.2, 8, 12), bodyMat);
+            body.position.y = 1.0;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            g.add(body);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xf5d0b0, roughness: 0.3 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), headMat);
+            head.position.y = 2.0;
+            head.castShadow = true;
+            head.receiveShadow = true;
+            g.add(head);
+            return g;
+        }
+
+        const loader = new GLTFLoader();
+        let fallbackUsed = false;
+
+        loader.load(
+            'player_game.glb',
+            (gltf) => {
+                const model = gltf.scene;
+                model.scale.set(1, 1, 1);
+                // compute bounding box
+                const box = new THREE.Box3().setFromObject(model);
+                const size = new THREE.Vector3();
+                box.getSize(size);
+                const height = size.y;
+                const scale = 2.0 / height;
+                model.scale.multiplyScalar(scale);
+                // recenter
+                const newBox = new THREE.Box3().setFromObject(model);
+                const minY = newBox.min.y;
+                state.playerBaseY = -minY;
+                model.position.y = state.playerBaseY;
+                // rotation: face forward (-Z)
+                model.rotation.y = Math.PI;
+                // shadows
+                model.traverse((child) => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                playerGroup.add(model);
+                state.playerModel = model;
+                // animations
+                if (gltf.animations && gltf.animations.length) {
+                    const mixer = new THREE.AnimationMixer(model);
+                    const clip = gltf.animations.find(a => a.name.toLowerCase().includes('run') || a.name.toLowerCase().includes('walk'));
+                    if (clip) {
+                        const action = mixer.clipAction(clip);
+                        action.play();
+                        state.mixer = mixer;
+                        state.action = action;
+                    }
+                }
+                // hide loader
+                document.getElementById('loader').classList.add('hidden');
+                setupGame();
+            },
+            undefined,
+            (err) => {
+                console.warn('Player model fallback', err);
+                fallbackUsed = true;
+                const fallback = createFallbackPlayer();
+                fallback.position.y = 0;
+                state.playerBaseY = 0;
+                fallback.rotation.y = Math.PI;
+                playerGroup.add(fallback);
+                playerCapsuleFallback = fallback;
+                document.getElementById('loader').classList.add('hidden');
+                setupGame();
+            }
+        );
+
+        // --- GAME SETUP (after player loaded) ---
+        let gameStarted = false;
+
+        function setupGame() {
+            // start overlay
+            const overlay = document.getElementById('overlay');
+            overlay.classList.remove('hidden');
+            document.getElementById('final-score').textContent = '0';
+            gameStarted = false;
+            state.isPlaying = false;
+            state.gameOver = false;
+            // reset player
+            playerGroup.position.set(0, state.playerBaseY, 0);
+            state.lane = 1;
+            state.targetLane = 1;
+            state.speed = 12;
+            state.score = 0;
+            state.coins = 0;
+            state.distance = 0;
+            updateHUD();
+            // reset obstacles/coins
+            resetWorld();
+            // event listeners
+            window.addEventListener('keydown', onKeyDown);
+            window.addEventListener('touchstart', onTouchStart, { passive: false });
+            window.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+            overlay.addEventListener('click', startGame);
+            overlay.addEventListener('touchend', startGame);
+            animate();
+        }
+
+        function startGame() {
+            if (gameStarted) return;
+            gameStarted = true;
+            state.isPlaying = true;
+            state.gameOver = false;
+            document.getElementById('overlay').classList.add('hidden');
+            playerGroup.position.set(0, state.playerBaseY, 0);
+            state.velocityY = 0;
+            state.isJumping = false;
+            state.speed = 12;
+            state.score = 0;
+            state.coins = 0;
+            state.distance = 0;
+            updateHUD();
+            resetWorld();
+        }
+
+        function resetWorld() {
+            // clear obstacles & coins
+            while(obstacleGroup.children.length) obstacleGroup.remove(obstacleGroup.children[0]);
+            while(coinGroup.children.length) coinGroup.remove(coinGroup.children[0]);
+            state.obstacles = [];
+            state.coinObjects = [];
+            // reinit road segments positions
+            segmentData.forEach((seg, i) => {
+                const z = i * roadLength - roadLength * 2;
+                seg.mesh.position.z = z;
+                seg.z = z;
+            });
+            buildingData.forEach((b, i) => {
+                const z = i * roadLength - roadLength * 2;
+                b.group.position.z = z;
+                b.z = z;
+            });
+            // lamps
+            while(lampGroup.children.length) lampGroup.remove(lampGroup.children[0]);
+            for (let i = 0; i < numSegments; i++) {
+                const z = i * roadLength - roadLength * 2;
+                for (let side = -1; side <= 1; side+=2) {
+                    if (Math.random() > 0.4) continue;
+                    const lamp = createLampPost(z + (Math.random()-0.5)*4, side);
+                    lampGroup.add(lamp);
+                }
+            }
+            // initial obstacles/coins
+            for (let i = 2; i < 6; i++) {
+                const z = i * roadLength - roadLength * 2;
+                const lane = Math.floor(Math.random()*3);
+                const obs = createObstacle(Math.random()>0.5?'low':'high', lane);
+                obs.position.z = z + (Math.random()-0.5)*10;
+                obstacleGroup.add(obs);
+                state.obstacles.push(obs);
+                const coin = createCoin();
+                const clane = Math.floor(Math.random()*3);
+                coin.position.set((clane-1)*state.laneWidth, 1.2, z + (Math.random()-0.5)*8);
+                coinGroup.add(coin);
+                state.coinObjects.push(coin);
+            }
+        }
+
+        // --- INPUT ---
+        function onKeyDown(e) {
+            if (!state.isPlaying || state.gameOver) {
+                if (e.key === ' ' || e.key === 'Space') startGame();
+                return;
+            }
+            switch(e.key) {
+                case 'ArrowLeft': case 'a': case 'A': moveLane(-1); e.preventDefault(); break;
+                case 'ArrowRight': case 'd': case 'D': moveLane(1); e.preventDefault(); break;
+                case 'ArrowUp': case 'w': case 'W': case ' ': jump(); e.preventDefault(); break;
+            }
+        }
+
+        let touchStartX = 0, touchStartY = 0;
+        function onTouchStart(e) {
+            if (!state.isPlaying || state.gameOver) { startGame(); return; }
+            const t = e.changedTouches[0];
+            touchStartX = t.clientX;
+            touchStartY = t.clientY;
+        }
+        window.addEventListener('touchstart', onTouchStart, { passive: false });
+        window.addEventListener('touchend', (e) => {
+            if (!state.isPlaying || state.gameOver) return;
+            const t = e.changedTouches[0];
+            const dx = t.clientX - touchStartX;
+            const dy = t.clientY - touchStartY;
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 30) {
+                moveLane(dx > 0 ? 1 : -1);
+            } else if (dy < -30) {
+                jump();
+            }
+        }, { passive: false });
+
+        function moveLane(dir) {
+            state.targetLane = Math.max(0, Math.min(2, state.targetLane + dir));
+        }
+
+        function jump() {
+            if (!state.isJumping && state.isPlaying) {
+                state.isJumping = true;
+                state.velocityY = 9.0;
+            }
+        }
+
+        // --- UPDATE ---
+        function updateHUD() {
+            document.getElementById('score-value').textContent = Math.floor(state.score);
+            document.getElementById('coin-value').textContent = state.coins;
+            document.getElementById('speed-value').textContent = Math.floor(state.speed * 3.6);
+        }
+
+        function updateWorld(delta) {
+            if (!state.isPlaying || state.gameOver) return;
+
+            // speed increase
+            state.speed = Math.min(state.maxSpeed, state.speed + delta * 0.3);
+            const moveZ = state.speed * delta;
+
+            // move player forward (world moves backward)
+            state.distance += moveZ;
+            state.score += moveZ * 0.1;
+
+            // lane smooth
+            state.lane += (state.targetLane - state.lane) * 0.12;
+            const targetX = (state.lane - 1) * state.laneWidth;
+            playerGroup.position.x += (targetX - playerGroup.position.x) * 0.12;
+
+            // jump physics
+            if (state.isJumping) {
+                state.velocityY += state.gravity * delta;
+                playerGroup.position.y += state.velocityY * delta;
+                if (playerGroup.position.y <= state.playerBaseY) {
+                    playerGroup.position.y = state.playerBaseY;
+                    state.isJumping = false;
+                    state.velocityY = 0;
+                }
+            }
+
+            // rotate player with lane change
+            const targetRotZ = - (state.lane - state.targetLane) * 0.15;
+            playerGroup.rotation.z += (targetRotZ - playerGroup.rotation.z) * 0.1;
+
+            // camera follow
+            const camTargetX = playerGroup.position.x * 0.4;
+            camera.position.x += (camTargetX - camera.position.x) * 0.06;
+            camera.position.z = playerGroup.position.z + 12;
+            camera.lookAt(playerGroup.position.x * 0.2, 2.5, playerGroup.position.z - 2);
+
+            // sun follow
+            sun.position.set(playerGroup.position.x + 30, 40, playerGroup.position.z + 20);
+            sun.target.position.copy(playerGroup.position);
+            sun.target.updateMatrixWorld();
+
+            // move road segments
+            segmentData.forEach((seg) => {
+                seg.z -= moveZ;
+                if (seg.z < -roadLength * 3) {
+                    seg.z += roadLength * numSegments;
+                }
+                seg.mesh.position.z = seg.z;
+            });
+            buildingData.forEach((b) => {
+                b.z -= moveZ;
+                if (b.z < -roadLength * 3) {
+                    b.z += roadLength * numSegments;
+                }
+                b.group.position.z = b.z;
+            });
+            // lamps recycle (simple)
+            lampGroup.children.forEach(l => {
+                l.position.z -= moveZ;
+                if (l.position.z < -roadLength * 3) {
+                    l.position.z += roadLength * numSegments;
+                }
+            });
+
+            // obstacles & coins recycle + spawn
+            state.obstacles.forEach(o => {
+                o.position.z -= moveZ;
+            });
+            state.coinObjects.forEach(c => {
+                c.position.z -= moveZ;
+                c.rotation.y += delta * 3;
+            });
+
+            // spawn new obstacles/coins ahead
+            const spawnZ = 30 + playerGroup.position.z;
+            if (Math.random() < 0.015) {
+                const lane = Math.floor(Math.random()*3);
+                const type = Math.random() > 0.5 ? 'low' : 'high';
+                const obs = createObstacle(type, lane);
+                obs.position.z = spawnZ + (Math.random()-0.5)*6;
+                obstacleGroup.add(obs);
+                state.obstacles.push(obs);
+            }
+            if (Math.random() < 0.02) {
+                const lane = Math.floor(Math.random()*3);
+                const coin = createCoin();
+                coin.position.set((lane-1)*state.laneWidth, 1.2, spawnZ + (Math.random()-0.5)*6);
+                coinGroup.add(coin);
+                state.coinObjects.push(coin);
+            }
+
+            // collision detection (obstacles)
+            const playerBox = new THREE.Box3().setFromObject(playerGroup);
+            for (let i = state.obstacles.length-1; i >= 0; i--) {
+                const obs = state.obstacles[i];
+                if (obs.position.z < playerGroup.position.z - 20) {
+                    obstacleGroup.remove(obs);
+                    state.obstacles.splice(i, 1);
+                    continue;
+                }
+                const obsBox = new THREE.Box3().setFromObject(obs);
+                if (playerBox.intersectsBox(obsBox)) {
+                    game
