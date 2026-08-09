@@ -1,0 +1,812 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>NULL.EXE | Cyberpunk Endless Runner</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
+
+        :root {
+            --bg-color: #0a0a2e;
+            --neon-purple: #cc44ff;
+            --neon-cyan: #00ffcc;
+            --text-color: #ffffff;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Orbitron', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* UI Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-top {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            text-shadow: 0 0 10px var(--neon-cyan);
+            color: var(--neon-cyan);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .score-box span {
+            color: var(--neon-purple);
+            text-shadow: 0 0 10px var(--neon-purple);
+        }
+
+        /* Screens (Start / Game Over) */
+        .screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 46, 0.85);
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            transition: opacity 0.3s;
+            z-index: 20;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        h1 {
+            font-size: 4rem;
+            margin: 0 0 20px 0;
+            background: linear-gradient(to right, var(--neon-cyan), var(--neon-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            filter: drop-shadow(0 0 20px rgba(204, 68, 255, 0.5));
+            text-align: center;
+        }
+
+        p.subtitle {
+            color: #fff;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 600px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            background: transparent;
+            color: var(--neon-cyan);
+            border: 2px solid var(--neon-cyan);
+            padding: 15px 40px;
+            font-size: 1.5rem;
+            font-family: 'Orbitron', sans-serif;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px var(--neon-cyan), inset 0 0 15px var(--neon-cyan);
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--neon-cyan);
+            color: var(--bg-color);
+            box-shadow: 0 0 30px var(--neon-cyan), inset 0 0 30px var(--neon-cyan);
+        }
+
+        .controls-hint {
+            margin-top: 30px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9rem;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            h1 { font-size: 2.5rem; }
+            .hud-top { font-size: 1.2rem; }
+        }
+    </style>
+    
+    <!-- Import Maps for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="score-box">SCORE: <span id="score-display">0</span></div>
+            <div class="speed-box">SPEED: <span id="speed-display">100%</span></div>
+        </div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="start-screen" class="screen">
+        <h1>NULL.EXE</h1>
+        <p class="subtitle">Digital Void. Neon Horizon.<br>Avoid the glitches. Collect the data.</p>
+        <button class="btn" id="start-btn">INITIALIZE</button>
+        <div class="controls-hint">Controls: Arrow Keys / WASD / Swipe</div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="screen hidden">
+        <h1 style="color: #ff0055; -webkit-text-fill-color: #ff0055; text-shadow: 0 0 20px #ff0055;">SYSTEM FAILURE</h1>
+        <p class="subtitle">Final Score: <span id="final-score" style="color:var(--neon-cyan)">0</span></p>
+        <button class="btn" id="restart-btn">REBOOT SYSTEM</button>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // --- CONFIGURATION ---
+        const CONFIG = {
+            laneWidth: 3.5,
+            baseSpeed: 25,
+            maxSpeed: 60,
+            speedIncrement: 0.5, // per second
+            gravity: 40,
+            jumpForce: 15,
+            segmentLength: 20,
+            renderDistance: 15, // segments ahead
+            colors: {
+                bg: 0x0a0a2e,
+                purple: 0xcc44ff,
+                cyan: 0x00ffcc,
+                red: 0xff0055,
+                dark: 0x111111
+            }
+        };
+
+        // --- GLOBAL VARIABLES ---
+        let scene, camera, renderer, composer;
+        let player, hoverboardLight;
+        let clock, delta;
+        let isGameActive = false;
+        let score = 0;
+        let gameSpeed = CONFIG.baseSpeed;
+        let distanceTraveled = 0;
+        
+        // Player State
+        let currentLane = 0; // -1, 0, 1
+        let targetX = 0;
+        let verticalVelocity = 0;
+        let isJumping = false;
+        let playerBaseY = 1.0; // Height of capsule/model center
+        
+        // World Generation
+        const segments = [];
+        const obstacles = [];
+        const coins = [];
+        const particles = [];
+        let nextSegmentZ = 0;
+
+        // Assets
+        let playerModel = null;
+        const textureLoader = new THREE.TextureLoader();
+        
+        // DOM Elements
+        const scoreEl = document.getElementById('score-display');
+        const speedEl = document.getElementById('speed-display');
+        const finalScoreEl = document.getElementById('final-score');
+        const startScreen = document.getElementById('start-screen');
+        const gameOverScreen = document.getElementById('game-over-screen');
+
+        // --- INITIALIZATION ---
+        function init() {
+            // Scene Setup
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(CONFIG.colors.bg);
+            scene.fog = new THREE.FogExp2(CONFIG.colors.bg, 0.015);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
+            camera.position.set(0, 5, 8);
+            camera.lookAt(0, 2, -10);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // Post Processing (Bloom)
+            const renderScene = new RenderPass(scene, camera);
+            const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+            bloomPass.threshold = 0.2;
+            bloomPass.strength = 1.2; // Neon intensity
+            bloomPass.radius = 0.5;
+
+            composer = new EffectComposer(renderer);
+            composer.addPass(renderScene);
+            composer.addPass(bloomPass);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x4040ff, 0.5); // Blue tint
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(CONFIG.colors.purple, 1);
+            dirLight.position.set(10, 20, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            // Event Listeners
+            window.addEventListener('resize', onWindowResize);
+            document.addEventListener('keydown', handleKeyDown);
+            setupTouchControls();
+
+            document.getElementById('start-btn').addEventListener('click', startGame);
+            document.getElementById('restart-btn').addEventListener('click', resetGame);
+
+            // Load Player Model
+            loadPlayer();
+
+            clock = new THREE.Clock();
+            animate();
+        }
+
+        function loadPlayer() {
+            const loader = new GLTFLoader();
+            
+            // Attempt to load external model
+            loader.load('player_game.glb', 
+                (gltf) => {
+                    playerModel = gltf.scene;
+                    playerModel.scale.set(1, 1, 1); // Adjust based on actual model size
+                    playerModel.traverse((child) => {
+                        if (child.isMesh) {
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        }
+                    });
+                    console.log("Player model loaded");
+                    createPlayer(playerModel);
+                },
+                undefined,
+                (error) => {
+                    console.warn("Model not found, using fallback capsule.");
+                    createFallbackPlayer();
+                }
+            );
+        }
+
+        function createFallbackPlayer() {
+            // Cyberpunk Capsule
+            const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+            const material = new THREE.MeshStandardMaterial({ 
+                color: 0x222222, 
+                roughness: 0.2,
+                metalness: 0.8
+            });
+            const mesh = new THREE.Mesh(geometry, material);
+            mesh.castShadow = true;
+            
+            // Add glowing visor
+            const visorGeo = new THREE.BoxGeometry(0.6, 0.1, 0.3);
+            const visorMat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan });
+            const visor = new THREE.Mesh(visorGeo, visorMat);
+            visor.position.set(0, 0.3, 0.3);
+            mesh.add(visor);
+
+            createPlayer(mesh);
+        }
+
+        function createPlayer(mesh) {
+            player = new THREE.Group();
+            
+            // The visual mesh
+            player.add(mesh);
+            
+            // Hoverboard
+            const boardGeo = new THREE.BoxGeometry(1.2, 0.1, 2.5);
+            const boardMat = new THREE.MeshStandardMaterial({ 
+                color: 0x111111, 
+                emissive: CONFIG.colors.purple,
+                emissiveIntensity: 0.5
+            });
+            const board = new THREE.Mesh(boardGeo, boardMat);
+            board.position.y = -0.8;
+            board.castShadow = true;
+            player.add(board);
+
+            // Hoverboard Light (PointLight)
+            hoverboardLight = new THREE.PointLight(CONFIG.colors.purple, 2, 10);
+            hoverboardLight.position.set(0, -1, 0);
+            player.add(hoverboardLight);
+
+            // Engine particles emitter point (visual only)
+            const engineGeo = new THREE.SphereGeometry(0.1);
+            const engineMat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan });
+            const engineL = new THREE.Mesh(engineGeo, engineMat);
+            engineL.position.set(-0.4, -0.8, 1.2);
+            const engineR = engineL.clone();
+            engineR.position.set(0.4, -0.8, 1.2);
+            player.add(engineL, engineR);
+
+            scene.add(player);
+            
+            // Initial Position
+            player.position.y = playerBaseY;
+        }
+
+        // --- GAME LOGIC ---
+
+        function startGame() {
+            startScreen.classList.add('hidden');
+            isGameActive = true;
+            clock.start();
+        }
+
+        function resetGame() {
+            gameOverScreen.classList.add('hidden');
+            
+            // Reset Stats
+            score = 0;
+            gameSpeed = CONFIG.baseSpeed;
+            distanceTraveled = 0;
+            currentLane = 0;
+            targetX = 0;
+            verticalVelocity = 0;
+            isJumping = false;
+            
+            // Reset Player
+            if (player) {
+                player.position.set(0, playerBaseY, 0);
+                player.rotation.set(0, 0, 0);
+            }
+
+            // Clear World
+            segments.forEach(s => scene.remove(s.mesh));
+            segments.length = 0;
+            obstacles.forEach(o => scene.remove(o.mesh));
+            obstacles.length = 0;
+            coins.forEach(c => scene.remove(c.mesh));
+            coins.length = 0;
+            particles.forEach(p => scene.remove(p.mesh));
+            particles.length = 0;
+
+            nextSegmentZ = 0;
+            
+            // Pre-generate road
+            for(let i=0; i<CONFIG.renderDistance; i++) {
+                spawnSegment();
+            }
+
+            updateUI();
+            isGameActive = true;
+            clock.start();
+        }
+
+        function spawnSegment() {
+            const zPos = -nextSegmentZ * CONFIG.segmentLength;
+            
+            // Road Mesh
+            const geo = new THREE.PlaneGeometry(CONFIG.laneWidth * 3 + 4, CONFIG.segmentLength);
+            // Create grid texture programmatically or use simple color with lines
+            const mat = new THREE.MeshStandardMaterial({ 
+                color: 0x050510,
+                roughness: 0.1,
+                metalness: 0.5
+            });
+            const road = new THREE.Mesh(geo, mat);
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(0, 0, zPos - CONFIG.segmentLength/2);
+            road.receiveShadow = true;
+            scene.add(road);
+
+            // Neon Lines (Side Barriers)
+            const barrierGeo = new THREE.BoxGeometry(0.2, 1, CONFIG.segmentLength);
+            const barrierMat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan });
+            
+            const leftWall = new THREE.Mesh(barrierGeo, barrierMat);
+            leftWall.position.set(-(CONFIG.laneWidth * 1.5 + 2), 0.5, zPos - CONFIG.segmentLength/2);
+            
+            const rightWall = new THREE.Mesh(barrierGeo, barrierMat);
+            rightWall.position.set((CONFIG.laneWidth * 1.5 + 2), 0.5, zPos - CONFIG.segmentLength/2);
+
+            scene.add(leftWall, rightWall);
+
+            // Lane markers
+            const lineGeo = new THREE.PlaneGeometry(0.1, CONFIG.segmentLength);
+            const lineMat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.purple, transparent: true, opacity: 0.5 });
+            
+            const line1 = new THREE.Mesh(lineGeo, lineMat);
+            line1.rotation.x = -Math.PI/2;
+            line1.position.set(-CONFIG.laneWidth/2 - 0.8, 0.01, zPos - CONFIG.segmentLength/2);
+            
+            const line2 = new THREE.Mesh(lineGeo, lineMat);
+            line2.rotation.x = -Math.PI/2;
+            line2.position.set(CONFIG.laneWidth/2 + 0.8, 0.01, zPos - CONFIG.segmentLength/2);
+
+            scene.add(line1, line2);
+
+            const segmentGroup = new THREE.Group();
+            segmentGroup.add(road, leftWall, rightWall, line1, line2);
+            
+            segments.push({ mesh: segmentGroup, z: zPos });
+
+            // Spawn Obstacles & Coins (only after a few segments)
+            if (nextSegmentZ > 2) {
+                spawnObstacles(zPos);
+                spawnCoins(zPos);
+            }
+
+            nextSegmentZ++;
+        }
+
+        function spawnObstacles(zBase) {
+            // Random chance to spawn obstacle
+            if (Math.random() > 0.6) return;
+
+            const lane = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
+            const xPos = lane * CONFIG.laneWidth;
+            const zPos = zBase - Math.random() * CONFIG.segmentLength;
+
+            const type = Math.random() > 0.5 ? 'barrier' : 'drone';
+            
+            let mesh;
+            let colliderType = 'box'; // box or sphere
+            let yOffset = 0;
+
+            if (type === 'barrier') {
+                const geo = new THREE.BoxGeometry(2, 1.5, 0.5);
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: 0x220022, 
+                    emissive: CONFIG.colors.red, 
+                    emissiveIntensity: 0.8 
+                });
+                mesh = new THREE.Mesh(geo, mat);
+                yOffset = 0.75;
+            } else {
+                // Drone
+                const geo = new THREE.OctahedronGeometry(0.6);
+                const mat = new THREE.MeshStandardMaterial({ 
+                    color: 0x333333, 
+                    emissive: CONFIG.colors.red, 
+                    emissiveIntensity: 0.5 
+                });
+                mesh = new THREE.Mesh(geo, mat);
+                yOffset = 2.0; // Flying high
+                colliderType = 'sphere';
+                
+                // Add glow
+                const light = new THREE.PointLight(CONFIG.colors.red, 1, 5);
+                mesh.add(light);
+            }
+
+            mesh.position.set(xPos, yOffset, zPos);
+            mesh.castShadow = true;
+            scene.add(mesh);
+
+            obstacles.push({ 
+                mesh: mesh, 
+                lane: lane, 
+                type: type,
+                active: true 
+            });
+        }
+
+        function spawnCoins(zBase) {
+            if (Math.random() > 0.5) return;
+
+            const lane = Math.floor(Math.random() * 3) - 1;
+            const xPos = lane * CONFIG.laneWidth;
+            
+            // Spawn a line of 3 coins
+            for(let i=0; i<3; i++) {
+                const zPos = zBase - (i * 3) - Math.random() * 5;
+                
+                const geo = new THREE.TorusGeometry(0.4, 0.1, 8, 16);
+                const mat = new THREE.MeshBasicMaterial({ color: CONFIG.colors.cyan });
+                const mesh = new THREE.Mesh(geo, mat);
+                
+                mesh.position.set(xPos, 1.5, zPos);
+                scene.add(mesh);
+
+                coins.push({ mesh: mesh, active: true });
+            }
+        }
+
+        function createExplosion(pos, color) {
+            const particleCount = 15;
+            const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+            const mat = new THREE.MeshBasicMaterial({ color: color });
+
+            for (let i = 0; i < particleCount; i++) {
+                const mesh = new THREE.Mesh(geo, mat);
+                mesh.position.copy(pos);
+                
+                // Random velocity
+                const vel = new THREE.Vector3(
+                    (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 10,
+                    (Math.random() - 0.5) * 10
+                );
+
+                scene.add(mesh);
+                particles.push({ mesh: mesh, velocity: vel, life: 1.0 });
+            }
+        }
+
+        // --- INPUT HANDLING ---
+        function handleKeyDown(event) {
+            if (!isGameActive) return;
+
+            switch(event.key) {
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    changeLane(-1);
+                    break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    changeLane(1);
+                    break;
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                case ' ':
+                    jump();
+                    break;
+            }
+        }
+
+        function setupTouchControls() {
+            let touchStartX = 0;
+            let touchStartY = 0;
+
+            document.addEventListener('touchstart', e => {
+                touchStartX = e.changedTouches[0].screenX;
+                touchStartY = e.changedTouches[0].screenY;
+            }, {passive: false});
+
+            document.addEventListener('touchend', e => {
+                if (!isGameActive) return;
+                const touchEndX = e.changedTouches[0].screenX;
+                const touchEndY = e.changedTouches[0].screenY;
+                
+                const diffX = touchEndX - touchStartX;
+                const diffY = touchEndY - touchStartY;
+
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    // Horizontal Swipe
+                    if (Math.abs(diffX) > 30) {
+                        changeLane(diffX > 0 ? 1 : -1);
+                    }
+                } else {
+                    // Vertical Swipe
+                    if (diffY < -30) jump();
+                }
+            }, {passive: false});
+        }
+
+        function changeLane(dir) {
+            const newLane = currentLane + dir;
+            if (newLane >= -1 && newLane <= 1) {
+                currentLane = newLane;
+                targetX = currentLane * CONFIG.laneWidth;
+                
+                // Tilt effect
+                if (player) {
+                    player.rotation.z = -dir * 0.3;
+                    setTimeout(() => {
+                        if(player) player.rotation.z = 0;
+                    }, 300);
+                }
+            }
+        }
+
+        function jump() {
+            if (!isJumping) {
+                verticalVelocity = CONFIG.jumpForce;
+                isJumping = true;
+            }
+        }
+
+        // --- MAIN LOOP ---
+        function animate() {
+            requestAnimationFrame(animate);
+
+            delta = clock.getDelta();
+            if (!isGameActive || !player) {
+                composer.render();
+                return;
+            }
+
+            // 1. Update Speed & Score
+            gameSpeed = Math.min(CONFIG.maxSpeed, gameSpeed + CONFIG.speedIncrement * delta);
+            distanceTraveled += gameSpeed * delta;
+            score = Math.floor(distanceTraveled);
+            updateUI();
+
+            // 2. Move Player Forward (Actually move world towards player logic, but here we move player -Z)
+            player.position.z -= gameSpeed * delta;
+
+            // 3. Lane Interpolation (Smooth X movement)
+            player.position.x += (targetX - player.position.x) * 10 * delta;
+
+            // 4. Jump Physics
+            if (isJumping) {
+                player.position.y += verticalVelocity * delta;
+                verticalVelocity -= CONFIG.gravity * delta;
+
+                if (player.position.y <= playerBaseY) {
+                    player.position.y = playerBaseY;
+                    isJumping = false;
+                    verticalVelocity = 0;
+                    // Landing squash?
+                }
+            } else {
+                // Hover bobbing
+                player.position.y = playerBaseY + Math.sin(clock.elapsedTime * 5) * 0.05;
+            }
+
+            // 5. Camera Follow
+            camera.position.z = player.position.z + 8;
+            camera.position.x += (player.position.x * 0.3 - camera.position.x) * 5 * delta; // Slight lag for dynamic feel
+
+            // 6. World Management (Recycling)
+            // Spawn new segments ahead
+            const frontEdge = player.position.z - (CONFIG.renderDistance * CONFIG.segmentLength);
+            if (-nextSegmentZ * CONFIG.segmentLength > frontEdge) {
+                spawnSegment();
+            }
+
+            // Cleanup old segments
+            while (segments.length > 0 && segments[0].z > player.position.z + 20) {
+                const s = segments.shift();
+                scene.remove(s.mesh);
+                // Dispose geometries/materials ideally here
+            }
+
+            // 7. Object Logic (Obstacles & Coins)
+            
+            // Obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                const obs = obstacles[i];
+                
+                // Animation
+                if (obs.type === 'drone') {
+                    obs.mesh.rotation.y += 2 * delta;
+                    obs.mesh.rotation.x += 1 * delta;
+                }
+
+                // Collision Detection (Simple AABB/Distance)
+                // Player is roughly at player.position
+                // Obstacle is at obs.mesh.position
+                const dz = Math.abs(player.position.z - obs.mesh.position.z);
+                const dx = Math.abs(player.position.x - obs.mesh.position.x);
+                
+                if (dz < 1.0 && dx < 1.0) {
+                    // Check Y collision (can we jump over?)
+                    // Barrier height ~1.5, Drone height ~2.0
+                    let hit = false;
+                    if (obs.type === 'barrier') {
+                        if (player.position.y < 1.5) hit = true;
+                    } else {
+                        // Drone is usually head height, need to duck? No duck mechanic. Just avoid lane.
+                        // Or maybe drone is low? Let's say drone hits if in same lane.
+                        hit = true; 
+                    }
+
+                    if (hit) {
+                        triggerGameOver();
+                    }
+                }
+
+                // Cleanup
+                if (obs.mesh.position.z > player.position.z + 10) {
+                    scene.remove(obs.mesh);
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Coins
+            for (let i = coins.length - 1; i >= 0; i--) {
+                const coin = coins[i];
+                coin.mesh.rotation.y += 3 * delta;
+
+                const dist = player.position.distanceTo(coin.mesh.position);
+                if (dist < 1.5) {
+                    // Collect
+                    score += 50;
+                    createExplosion(coin.mesh.position, CONFIG.colors.cyan);
+                    scene.remove(coin.mesh);
+                    coins.splice(i, 1);
+                } else if (coin.mesh.position.z > player.position.z + 10) {
+                    scene.remove(coin.mesh);
+                    coins.splice(i, 1);
+                }
+            }
+
+            // Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.life -= delta * 2;
+                p.mesh.position.addScaledVector(p.velocity, delta);
+                p.mesh.scale.setScalar(p.life);
+                
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                }
+            }
+
+            // Render
+            composer.render();
+        }
+
+        function triggerGameOver() {
+            isGameActive = false;
+            createExplosion(player.position, CONFIG.colors.purple);
+            finalScoreEl.innerText = score;
+            gameOverScreen.classList.remove('hidden');
+        }
+
+        function updateUI() {
+            scoreEl.innerText = score;
+            const speedPercent = Math.floor((gameSpeed / CONFIG.maxSpeed) * 100);
+            speedEl.innerText = speedPercent + '%';
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // Boot
+        init();
+
+    </script>
+</body>
+</html>
+```
