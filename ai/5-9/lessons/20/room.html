@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Комната подростка 3D</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #1a1a2e; font-family: 'Segoe UI', sans-serif; }
+canvas { display: block; }
+#ui {
+position: fixed; top: 20px; left: 20px; z-index: 100;
+display: flex; flex-direction: column; gap: 8px;
+}
+.btn {
+padding: 10px 18px; border: none; border-radius: 8px;
+background: rgba(255,255,255,0.12); color: #fff;
+font-size: 14px; cursor: pointer; backdrop-filter: blur(10px);
+border: 1px solid rgba(255,255,255,0.2); transition: all 0.3s;
+}
+.btn:hover { background: rgba(255,255,255,0.25); transform: scale(1.05); }
+.btn.active { background: rgba(100,200,255,0.3); border-color: rgba(100,200,255,0.6); }
+#info {
+position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+color: rgba(255,255,255,0.6); font-size: 13px; text-align: center;
+}
+</style>
+</head>
+<body>
+<div id="ui">
+<button class="btn active" id="btnWalls4" onclick="setWalls(4)">🏠 Все стены</button>
+<button class="btn" id="btnWalls2" onclick="setWalls(2)">🔲 Задник (2 стены)</button>
+<button class="btn" id="btnWalls0" onclick="setWalls(0)">📐 Только пол</button>
+</div>
+<div id="info">ЛКМ — вращение | Колёсико — зум | ПКМ — перетаскивание</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1a1a2e);
+scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 100);
+camera.position.set(10, 9, 10);
+camera.lookAt(0, 1, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+document.body.appendChild(renderer.domElement);
+
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.target.set(0, 1.5, 0);
+controls.minDistance = 5;
+controls.maxDistance = 25;
+controls.maxPolarAngle = Math.PI / 2.1;
+
+// Lights
+const ambient = new THREE.AmbientLight(0x404060, 0.5);
+scene.add(ambient);
+
+const mainLight = new THREE.DirectionalLight(0xffeedd, 0.8);
+mainLight.position.set(5, 10, 5);
+mainLight.castShadow = true;
+mainLight.shadow.mapSize.set(2048, 2048);
+mainLight.shadow.camera.near = 0.5;
+mainLight.shadow.camera.far = 30;
+mainLight.shadow.camera.left = -10;
+mainLight.shadow.camera.right = 10;
+mainLight.shadow.camera.top = 10;
+mainLight.shadow.camera.bottom = -10;
+scene.add(mainLight);
+
+const warmLight = new THREE.PointLight(0xffaa44, 0.6, 8);
+warmLight.position.set(-2, 3.5, -2);
+warmLight.castShadow = true;
+scene.add(warmLight);
+
+const deskLight = new THREE.PointLight(0x66aaff, 0.5, 5);
+deskLight.position.set(2.5, 2.5, -2.5);
+scene.add(deskLight);
+
+const rgbStrip = new THREE.PointLight(0xff00ff, 0.3, 4);
+rgbStrip.position.set(-3.5, 0.5, 0);
+scene.add(rgbStrip);
+
+// Materials
+const mat = {
+floor: new THREE.MeshStandardMaterial({ color: 0x8B6914, roughness: 0.7 }),
+wall: new THREE.MeshStandardMaterial({ color: 0x4a5568, roughness: 0.9, side: THREE.DoubleSide }),
+wallAccent: new THREE.MeshStandardMaterial({ color: 0x2d3748, roughness: 0.85, side: THREE.DoubleSide }),
+wood: new THREE.MeshStandardMaterial({ color: 0x5c3d1e, roughness: 0.6 }),
+woodLight: new THREE.MeshStandardMaterial({ color: 0x9c7a4a, roughness: 0.5 }),
+darkWood: new THREE.MeshStandardMaterial({ color: 0x3d2810, roughness: 0.6 }),
+metal: new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.3, metalness: 0.8 }),
+black: new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.4 }),
+white: new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.5 }),
+red: new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.5 }),
+blue: new THREE.MeshStandardMaterial({ color: 0x3366cc, roughness: 0.5 }),
+green: new THREE.MeshStandardMaterial({ color: 0x33aa55, roughness: 0.5 }),
+purple: new THREE.MeshStandardMaterial({ color: 0x7733cc, roughness: 0.5 }),
+orange: new THREE.MeshStandardMaterial({ color: 0xff6633, roughness: 0.5 }),
+yellow: new THREE.MeshStandardMaterial({ color: 0xffcc00, roughness: 0.5 }),
+fabric: new THREE.MeshStandardMaterial({ color: 0x2c3e50, roughness: 0.9 }),
+fabricDark: new THREE.MeshStandardMaterial({ color: 0x1a252f, roughness: 0.95 }),
+screen: new THREE.MeshStandardMaterial({ color: 0x111122, roughness: 0.1, emissive: 0x223355, emissiveIntensity: 0.5 }),
+screenGlow: new THREE.MeshStandardMaterial({ color: 0x000000, emissive: 0x4488ff, emissiveIntensity: 1.0 }),
+poster1: new THREE.MeshStandardMaterial({ color: 0xff4444, roughness: 0.8 }),
+poster2: new THREE.MeshStandardMaterial({ color: 0x44aaff, roughness: 0.8 }),
+poster3: new THREE.MeshStandardMaterial({ color: 0x44ff88, roughness: 0.8 }),
+rug: new THREE.MeshStandardMaterial({ color: 0x8844aa, roughness: 0.95 }),
+glass: new THREE.MeshStandardMaterial({ color: 0xaaddff, roughness: 0.1, transparent: true, opacity: 0.3 }),
+ceiling: new THREE.MeshStandardMaterial({ color: 0xfafafa, roughness: 0.9, side: THREE.DoubleSide }),
+};
+
+const ROOM_W = 7, ROOM_D = 7, ROOM_H = 3.5;
+const walls = [];
+
+function box(w, h, d, material) {
+const g = new THREE.BoxGeometry(w, h, d);
+const m = new THREE.Mesh(g, material);
+m.castShadow = true;
+m.receiveShadow = true;
+return m;
+}
+
+function cylinder(rT, rB, h, seg, material) {
+const g = new THREE.CylinderGeometry(rT, rB, h, seg);
+const m = new THREE.Mesh(g, material);
+m.castShadow = true;
+m.receiveShadow = true;
+return m;
+}
+
+// FLOOR
+const floor = box(ROOM_W, 0.15, ROOM_D, mat.floor);
+floor.position.set(0, -0.075, 0);
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Floor planks pattern
+for(let i = -3; i <= 3; i++) {
+const plank = box(ROOM_W, 0.01, 0.02, mat.darkWood);
+plank.position.set(0, 0.01, i * 1);
+scene.add(plank);
+}
+
+// WALLS
+// Back wall (Z-)
+const wallBack = box(ROOM_W, ROOM_H, 0.15, mat.wallAccent);
+wallBack.position.set(0, ROOM_H/2, -ROOM_D/2);
+scene.add(wallBack);
+walls.push(wallBack);
+
+// Left wall (X-)
+const wallLeft = box(0.15, ROOM_H, ROOM_D, mat.wall);
+wallLeft.position.set(-ROOM_W/2, ROOM_H/2, 0);
+scene.add(wallLeft);
+walls.push(wallLeft);
+
+// Front wall (Z+)
+const wallFront = box(ROOM_W, ROOM_H, 0.15, mat.wall);
+wallFront.position.set(0, ROOM_H/2, ROOM_D/2);
+scene.add(wallFront);
+walls.push(wallFront);
+
+// Right wall (X+)
+const wallRight = box(0.15, ROOM_H, ROOM_D, mat.wallAccent);
+wallRight.position.set(ROOM_W/2, ROOM_H/2, 0);
+scene.add(wallRight);
+walls.push(wallRight);
+
+// Ceiling
+const ceiling = box(ROOM_W, 0.1, ROOM_D, mat.ceiling);
+ceiling.position.set(0, ROOM_H, 0);
+ceiling.receiveShadow = true;
+scene.add(ceiling);
+
+// === BED ===
+const bedGroup = new THREE.Group();
+// Frame
+const bedFrame = box(1.6, 0.4, 2.2, mat.woodLight);
+bedFrame.position.set(0, 0.2, 0);
+bedGroup.add(bedFrame);
+// Mattress
+const mattress = box(1.5, 0.25, 2.1, mat.white);
+mattress.position.set(0, 0.52, 0);
+bedGroup.add(mattress);
+// Pillow
+const pillow = box(0.5, 0.15, 0.35, mat.white);
+pillow.position.set(-0.3, 0.72, -0.8);
+bedGroup.add(pillow);
+const pillow2 = box(0.5, 0.15, 0.35, mat.white);
+pillow2.position.set(0.3, 0.72, -0.8);
+bedGroup.add(pillow2);
+// Blanket
+const blanket = box(1.4, 0.1, 1.4, mat.blue);
+blanket.position.set(0, 0.7, 0.25);
+bedGroup.add(blanket);
+// Headboard
+const headboard = box(1.6, 0.9, 0.1, mat.wood);
+headboard.position.set(0, 0.65, -1.1);
+bedGroup.add(headboard);
+// Legs
+for(let x of [-0.7, 0.7]) for(let z of [-1, 1]) {
+const leg = box(0.08, 0.15, 0.08, mat.darkWood);
+leg.position.set(x, 0.075, z);
+bedGroup.add(leg);
+}
+bedGroup.position.set(-2.5, 0, -2.2);
+scene.add(bedGroup);
+
+// === DESK ===
+const deskGroup = new THREE.Group();
+const deskTop = box(2.0, 0.08, 0.9, mat.woodLight);
+deskTop.position.set(0, 1.0, 0);
+deskGroup.add(deskTop);
+// Desk legs
+for(let x of [-0.9, 0.9]) {
+const leg = box(0.06, 1.0, 0.7, mat.metal);
+leg.position.set(x, 0.5, 0);
+deskGroup.add(leg);
+}
+// Shelf under desk
+const shelf = box(1.8, 0.05, 0.7, mat.woodLight);
+shelf.position.set(0, 0.3, 0);
+deskGroup.add(shelf);
+deskGroup.position.set(2.2, 0, -2.8);
+scene.add(deskGroup);
+
+// === MONITOR ===
+const monitorGroup = new THREE.Group();
+const monitorScreen = box(1.2, 0.7, 0.04, mat.black);
+monitorScreen.position.set(0, 0.55, 0);
+monitorGroup.add(monitorScreen);
+const screenFace = box(1.1, 0.6, 0.01, mat.screenGlow);
+screenFace.position.set(0, 0.55, 0.025);
+monitorGroup.add(screenFace);
+const monitorStand = box(0.08, 0.3, 0.08, mat.metal);
+monitorStand.position.set(0, 0.15, 0);
+monitorGroup.add(monitorStand);
+const monitorBase = box(0.4, 0.03, 0.25, mat.metal);
+monitorBase.position.set(0, 0, 0);
+monitorGroup.add(monitorBase);
+monitorGroup.position.set(2.2, 1.04, -3.0);
+scene.add(monitorGroup);
+
+// Second monitor
+const mon2 = monitorGroup.clone();
+mon2.position.set(3.0, 1.04, -3.0);
+mon2.rotation.y = -0.3;
+scene.add(mon2);
+
+// === KEYBOARD & MOUSE ===
+const keyboard = box(0.6, 0.03, 0.2, mat.black);
+keyboard.position.set(2.2, 1.06, -2.5);
+scene.add(keyboard);
+
+const mouse = box(0.08, 0.03, 0.12, mat.black);
+mouse.position.set(2.8, 1.06, -2.5);
+scene.add(mouse);
+
+// Mouse pad
+const mousePad = box(0.4, 0.01, 0.35, mat.purple);
+mousePad.position.set(2.8, 1.04, -2.5);
+scene.add(mousePad);
+
+// === GAMING CHAIR ===
+const chairGroup = new THREE.Group();
+const seat = box(0.55, 0.08, 0.5, mat.red);
+seat.position.set(0, 0.6, 0);
+chairGroup.add(seat);
+const backrest = box(0.55, 0.8, 0.08, mat.red);
+backrest.position.set(0, 1.05, -0.25);
+backrest.rotation.x = 0.1;
+chairGroup.add(backrest);
+const chairPole = cylinder(0.04, 0.04, 0.4, 8, mat.metal);
+chairPole.position.set(0, 0.35, 0);
+chairGroup.add(chairPole);
+const chairBase = cylinder(0.3, 0.3, 0.05, 5, mat.black);
+chairBase.position.set(0, 0.12, 0);
+chairGroup.add(chairBase);
+// Armrests
+for(let x of [-0.3, 0.3]) {
+const arm = box(0.06, 0.04, 0.3, mat.black);
+arm.position.set(x, 0.78, -0.05);
+chairGroup.add(arm);
+const armPole = box(0.04, 0.2, 0.04, mat.metal);
+armPole.position.set(x, 0.68, -0.05);
+chairGroup.add(armPole);
+}
+// Wheels
+for(let i = 0; i < 5; i++) {
+const a = (i/5)*Math.PI*2;
+const wheel = cylinder(0.04, 0.04, 0.04, 8, mat.black);
+wheel.position.set(Math.cos(a)*0.28, 0.04, Math.sin(a)*0.28);
+wheel.rotation.z = Math.PI/2;
+chairGroup.add(wheel);
+}
+chairGroup.position.set(2.2, 0, -1.8);
+chairGroup.rotation.y = 0.3;
+scene.add(chairGroup);
+
+// === BOOKSHELF ===
+const shelfGroup = new THREE.Group();
+const shelfBack = box(1.2, 2.2, 0.05, mat.wood);
+shelfBack.position.set(0, 1.1, -0.2);
+shelfGroup.add(shelfBack);
+const shelfSideL = box(0.05, 2.2, 0.4, mat.wood);
+shelfSideL.position.set(-0.6, 1.1, 0);
+shelfGroup.add(shelfSideL);
+const shelfSideR = box(0.05, 2.2, 0.4, mat.wood);
+shelfSideR.position.set(0.6, 1.1, 0);
+shelfGroup.add(shelfSideR);
+for(let i = 0; i < 5; i++) {
+const sh = box(1.2, 0.04, 0.4, mat.wood);
+sh.position.set(0, i*0.5 + 0.1, 0);
+shelfGroup.add(sh);
+}
+// Books
+const bookColors = [mat.red, mat.blue, mat.green, mat.purple, mat.orange, mat.yellow];
+for(let row = 0; row < 4; row++) {
+let xPos = -0.5;
+for(let b = 0; b < 5 + Math.floor(Math.random()*3); b++) {
+const bw = 0.04 + Math.random()*0.04;
+const bh = 0.3 + Math.random()*0.15;
+const book = box(bw, bh, 0.25, bookColors[Math.floor(Math.random()*bookColors.length)]);
+book.position.set(xPos, row*0.5 + 0.1 + bh/2 + 0.02, 0);
+shelfGroup.add(book);
+xPos += bw + 0.02;
+if(xPos > 0.5) break;
+}
+}
+shelfGroup.position.set(-3.2, 0, -0.5);
+scene.add(shelfGroup);
+
+// === WARDROBE ===
+const wardrobeGroup = new THREE.Group();
+const wBody = box(1.2, 2.4, 0.6, mat.darkWood);
+wBody.position.set(0, 1.2, 0);
+wardrobeGroup.add(wBody);
+const wDoor1 = box(0.58, 2.3, 0.03, mat.wood);
+wDoor1.position.set(-0.3, 1.2, 0.31);
+wardrobeGroup.add(wDoor1);
+const wDoor2 = box(0.58, 2.3, 0.03, mat.wood);
+wDoor2.position.set(0.3, 1.2, 0.31);
+wardrobeGroup.add(wDoor2);
+// Handles
+const h1 = cylinder(0.015, 0.015, 0.15, 8, mat.metal);
+h1.position.set(-0.05, 1.2, 0.34);
+wardrobeGroup.add(h1);
+const h2 = cylinder(0.015, 0.015, 0.15, 8, mat.metal);
+h2.position.set(0.05, 1.2, 0.34);
+wardrobeGroup.add(h2);
+wardrobeGroup.position.set(-3.0, 0, 2.5);
+scene.add(wardrobeGroup);
+
+// === NIGHTSTAND ===
+const nightstand = new THREE.Group();
+const nsBody = box(0.5, 0.5, 0.4, mat.woodLight);
+nsBody.position.set(0, 0.25, 0);
+nightstand.add(nsBody);
+const nsTop = box(0.55, 0.04, 0.45, mat.wood);
+nsTop.position.set(0, 0.52, 0);
+nightstand.add(nsTop);
+// Drawer handle
+const nsHandle = box(0.15, 0.02, 0.02, mat.metal);
+nsHandle.position.set(0, 0.25, 0.21);
+nightstand.add(nsHandle);
+nightstand.position.set(-1.5, 0, -2.8);
+scene.add(nightstand);
+
+// === DESK LAMP ===
+const lampGroup = new THREE.Group();
+const lampBase = cylinder(0.12, 0.15, 0.04, 16, mat.metal);
+lampBase.position.set(0, 0.02, 0);
+lampGroup.add(lampBase);
+const lampArm = cylinder(0.02, 0.02, 0.6, 8, mat.metal);
+lampArm.position.set(0, 0.32, 0);
+lampArm.rotation.z = 0.2;
+lampGroup.add(lampArm);
+const lampShade = cylinder(0.02, 0.15, 0.15, 16, mat.yellow);
+lampShade.position.set(0.12, 0.6, 0);
+lampGroup.add(lampShade);
+lampGroup.position.set(1.4, 1.04, -2.9);
+scene.add(lampGroup);
+
+// === GUITAR ===
+const guitarGroup = new THREE.Group();
+const gNeck = box(0.06, 1.0, 0.03, mat.woodLight);
+gNeck.position.set(0, 0.8, 0);
+guitarGroup.add(gNeck);
+const gBody = cylinder(0.25, 0.3, 0.06, 16, mat.orange);
+gBody.position.set(0, 0.2, 0);
+gBody.rotation.x = Math.PI/2;
+guitarGroup.add(gBody);
+const gHead = box(0.08, 0.2, 0.03, mat.darkWood);
+gHead.position.set(0, 1.35, 0);
+guitarGroup.add(gHead);
+guitarGroup.position.set(-3.3, 0, -2.5);
+guitarGroup.rotation.z = 0.15;
+guitarGroup.rotation.y = 0.3;
+scene.add(guitarGroup);
+
+// === SKATEBOARD ===
+const skateGroup = new THREE.Group();
+const board = box(0.2, 0.02, 0.8, mat.green);
+board.position.set(0, 0.08, 0);
+skateGroup.add(board);
+for(let z of [-0.25, 0.25]) {
+const truck = box(0.18, 0.03, 0.04, mat.metal);
+truck.position.set(0, 0.04, z);
+skateGroup.add(truck);
+for(let x of [-0.07, 0.07]) {
+const wheel = cylinder(0.03, 0.03, 0.03, 12, mat.yellow);
+wheel.position.set(x, 0.03, z);
+wheel.rotation.z = Math.PI/2;
+skateGroup.add(wheel);
+}
+}
+skateGroup.position.set(1.5, 0, 2.0);
+skateGroup.rotation.y = 0.8;
+scene.add(skateGroup);
+
+// === RUG ===
+const rug = cylinder(1.2, 1.2, 0.03, 32, mat.rug);
+rug.position.set(0, 0.015, 0.5);
+rug.receiveShadow = true;
+scene.add(rug);
+// Rug pattern
+const rugInner = cylinder(0.7, 0.7, 0.035, 32, mat.purple);
+rugInner.position.set(0, 0.02, 0.5);
+scene.add(rugInner);
+
+// === POSTERS ON WALL ===
+const poster1 = box(0.8, 1.1, 0.02, mat.poster1);
+poster1.position.set(-1.5, 2.2, -3.4);
+scene.add(poster1);
+const poster1frame = box(0.85, 1.15, 0.01, mat.black);
+poster1frame.position.set(-1.5, 2.2, -3.42);
+scene.add(poster1frame);
+
+const poster2 = box(0.6, 0.9, 0.02, mat.poster2);
+poster2.position.set(0.5, 2.4, -3.4);
+scene.add(poster2);
+const poster2frame = box(0.65, 0.95, 0.01, mat.black);
+poster2frame.position.set(0.5, 2.4, -3.42);
+scene.add(poster2frame);
+
+const poster3 = box(0.7, 0.5, 0.02, mat.poster3);
+poster3.position.set(-0.5, 2.0, -3.4);
+scene.add(poster3);
+
+// Poster on left wall
+const poster4 = box(0.02, 0.8, 0.6, mat.orange);
+poster4.position.set(-3.4, 2.3, 1.0);
+scene.add(poster4);
+
+// === HEADPHONES ON DESK ===
+const hpGroup = new THREE.Group();
+const hpBand = new THREE.TorusGeometry(0.12, 0.015, 8, 16, Math.PI);
+const hpBandMesh = new THREE.Mesh(hpBand, mat.black);
+hpBandMesh.position.set(0, 0.12, 0);
+hpGroup.add(hpBandMesh);
+const hpL = cylinder(0.06, 0.06, 0.04, 12, mat.black);
+hpL.position.set(-0.12, 0, 0);
+hpL.rotation.z = Math.PI/2;
+hpGroup.add(hpL);
+const hpR = cylinder(0.06, 0.06, 0.04, 12, mat.black);
+hpR.position.set(0.12, 0, 0);
+hpR.rotation.z = Math.PI/2;
+hpGroup.add(hpR);
+hpGroup.position.set(1.6, 1.1, -2.5);
+hpGroup.rotation.x = -0.3;
+scene.add(hpGroup);
+
+// === TRASH CAN ===
+const trash = cylinder(0.15, 0.2, 0.4, 12, mat.metal);
+trash.position.set(3.0, 0.2, -1.5);
+scene.add(trash);
+
+// === BEAN BAG ===
+const beanBag = new THREE.Mesh(
+new THREE.SphereGeometry(0.5, 16, 12),
+mat.purple
+);
+beanBag.scale.set(1, 0.6, 1);
+beanBag.position.set(0.5, 0.3, 1.5);
+beanBag.castShadow = true;
+scene.add(beanBag);
+
+// === SMALL TABLE / COFFEE TABLE ===
+const coffeeTable = new THREE.Group();
+const ctTop = box(0.8, 0.05, 0.5, mat.woodLight);
+ctTop.position.set(0, 0.45, 0);
+coffeeTable.add(ctTop);
+for(let x of [-0.35, 0.35]) for(let z of [-0.2, 0.2]) {
+const leg = cylinder(0.02, 0.02, 0.45, 8, mat.metal);
+leg.position.set(x, 0.22, z);
+coffeeTable.add(leg);
+}
+coffeeTable.position.set(0.5, 0, 0.5);
+scene.add(coffeeTable);
+
+// Can on table
+const can = cylinder(0.04, 0.04, 0.12, 12, mat.red);
+can.position.set(0.6, 0.54, 0.5);
+scene.add(can);
+
+// === SNEAKERS ===
+for(let i = 0; i < 2; i++) {
+const shoe = box(0.1, 0.08, 0.25, mat.white);
+shoe.position.set(-1.0 + i*0.15, 0.04, 1.8);
+shoe.rotation.y = 0.2 + i*0.1;
+scene.add(shoe);
+const sole = box(0.1, 0.03, 0.25, mat.black);
+sole.position.set(-1.0 + i*0.15, 0.015, 1.8);
+sole.rotation.y = 0.2 + i*0.1;
+scene.add(sole);
+}
+
+// === BACKPACK ===
+const backpack = box(0.35, 0.5, 0.2, mat.blue);
+backpack.position.set(-2.8, 0.25, 1.5);
+backpack.rotation.y = 0.4;
+scene.add(backpack);
+const bpFlap = box(0.3, 0.15, 0.05, mat.blue);
+bpFlap.position.set(-2.8, 0.55, 1.6);
+bpFlap.rotation.y = 0.4;
+scene.add(bpFlap);
+
+// === LED STRIP (behind desk) ===
+const ledStrip = box(1.8, 0.03, 0.03, new THREE.MeshStandardMaterial({
+color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2
+}));
+ledStrip.position.set(2.2, 0.95, -3.2);
+scene.add(ledStrip);
+
+const ledStrip2 = box(0.03, 0.03, 0.7, new THREE.MeshStandardMaterial({
+color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2
+}));
+ledStrip2.position.set(3.15, 0.95, -2.85);
+scene.add(ledStrip2);
+
+// === CEILING LIGHT ===
+const ceilLight = cylinder(0.3, 0.3, 0.05, 16, mat.white);
+ceilLight.position.set(0, ROOM_H - 0.05, 0);
+scene.add(ceilLight);
+const ceilWire = cylinder(0.01, 0.01, 0.4, 8, mat.black);
+ceilWire.position.set(0, ROOM_H - 0.25, 0);
+scene.add(ceilWire);
+const ceilBulb = new THREE.Mesh(
+new THREE.SphereGeometry(0.12, 16, 12),
+new THREE.MeshStandardMaterial({ color: 0xffffee, emissive: 0xffffaa, emissiveIntensity: 0.8 })
+);
+ceilBulb.position.set(0, ROOM_H - 0.5, 0);
+scene.add(ceilBulb);
+
+// === WINDOW (on back wall) ===
+const windowFrame = box(1.2, 1.0, 0.06, mat.white);
+windowFrame.position.set(2.0, 2.2, -3.38);
+scene.add(windowFrame);
+const windowGlass = box(1.0, 0.8, 0.02, mat.glass);
+windowGlass.position.set(2.0, 2.2, -3.36);
+scene.add(windowGlass);
+// Window cross
+const wCrossH = box(1.0, 0.03, 0.03, mat.white);
+wCrossH.position.set(2.0, 2.2, -3.34);
+scene.add(wCrossH);
+const wCrossV = box(0.03, 0.8, 0.03, mat.white);
+wCrossV.position.set(2.0, 2.2, -3.34);
+scene.add(wCrossV);
+
+// === SMALL PLANT ===
+const pot = cylinder(0.08, 0.1, 0.15, 12, mat.orange);
+pot.position.set(-1.5, 0.6, -2.8);
+scene.add(pot);
+const plant = new THREE.Mesh(
+new THREE.SphereGeometry(0.15, 8, 8),
+mat.green
+);
+plant.position.set(-1.5, 0.8, -2.8);
+plant.scale.set(1, 1.3, 1);
+scene.add(plant);
+
+// === CONSOLE / TV STAND ===
+const tvStand = box(1.5, 0.5, 0.4, mat.darkWood);
+tvStand.position.set(0, 0.25, 3.1);
+scene.add(tvStand);
+
+// TV / Monitor on stand
+const tv = box(1.3, 0.8, 0.04, mat.black);
+tv.position.set(0, 0.95, 3.1);
+scene.add(tv);
+const tvScreen = box(1.2, 0.7, 0.01, mat.screen);
+tvScreen.position.set(0, 0.95, 3.08);
+scene.add(tvScreen);
+
+// === GAME CONTROLLER on bed ===
+const controller = box(0.15, 0.04, 0.1, mat.black);
+controller.position.set(-2.5, 0.78, -1.5);
+controller.rotation.y = 0.5;
+scene.add(controller);
+
+// === STACK OF GAMES/BOOKS on nightstand ===
+for(let i = 0; i < 3; i++) {
+const gameBox = box(0.2, 0.03, 0.15, bookColors[i]);
+gameBox.position.set(-1.5, 0.56 + i*0.035, -2.8);
+gameBox.rotation.y = i * 0.2;
+scene.add(gameBox);
+}
+
+// === WALL CLOCK ===
+const clockFace = cylinder(0.2, 0.2, 0.03, 24, mat.white);
+clockFace.position.set(-3.38, 2.8, -1.5);
+clockFace.rotation.z = Math.PI/2;
+scene.add(clockFace);
+const clockRim = new THREE.Mesh(
+new THREE.TorusGeometry(0.2, 0.015, 8, 24),
+mat.black
+);
+clockRim.position.set(-3.37, 2.8, -1.5);
+clockRim.rotation.y = Math.PI/2;
+scene.add(clockRim);
+
+// === DOOR (on right wall) ===
+const door = box(0.05, 2.2, 0.9, mat.woodLight);
+door.position.set(3.4, 1.1, 1.5);
+scene.add(door);
+const doorHandle = cylinder(0.02, 0.02, 0.08, 8, mat.metal);
+doorHandle.position.set(3.35, 1.1, 1.2);
+doorHandle.rotation.x = Math.PI/2;
+scene.add(doorHandle);
+
+// === BASEBOARD ===
+const baseboards = [
+{ pos: [0, 0.05, -3.42], size: [ROOM_W, 0.1, 0.04] },
+{ pos: [-3.42, 0.05, 0], size: [0.04, 0.1, ROOM_D] },
+{ pos: [0, 0.05, 3.42], size: [ROOM_W, 0.1, 0.04] },
+{ pos: [3.42, 0.05, 0], size: [0.04, 0.1, ROOM_D] },
+];
+baseboards.forEach(b => {
+const bb = box(b.size[0], b.size[1], b.size[2], mat.white);
+bb.position.set(...b.pos);
+scene.add(bb);
+});
+
+// === PHONE on desk ===
+const phone = box(0.04, 0.005, 0.09, mat.black);
+phone.position.set(2.6, 1.06, -2.7);
+phone.rotation.y = 0.3;
+scene.add(phone);
+const phoneScreen = box(0.035, 0.003, 0.08, mat.screenGlow);
+phoneScreen.position.set(2.6, 1.065, -2.7);
+phoneScreen.rotation.y = 0.3;
+scene.add(phoneScreen);
+
+// === WATER BOTTLE ===
+const bottle = cylinder(0.04, 0.04, 0.25, 12, new THREE.MeshStandardMaterial({
+color: 0x88ccff, transparent: true, opacity: 0.6, roughness: 0.1
+}));
+bottle.position.set(1.3, 1.17, -2.6);
+scene.add(bottle);
+
+// === WALL SHELF with figures ===
+const wallShelf = box(1.0, 0.04, 0.2, mat.wood);
+wallShelf.position.set(-1.5, 1.8, -3.35);
+scene.add(wallShelf);
+// Small figures
+for(let i = 0; i < 4; i++) {
+const fig = box(0.06, 0.12 + Math.random()*0.08, 0.06, bookColors[i+1]);
+fig.position.set(-1.8 + i*0.2, 1.9, -3.3);
+scene.add(fig);
+}
+
+// === POWER STRIP under desk ===
+const powerStrip = box(0.4, 0.04, 0.06, mat.white);
+powerStrip.position.set(2.2, 0.05, -2.5);
+scene.add(powerStrip);
+
+// === CABLES (simple) ===
+const cable = cylinder(0.008, 0.008, 1.5, 6, mat.black);
+cable.position.set(2.8, 0.5, -3.0);
+cable.rotation.z = 0.3;
+scene.add(cable);
+
+// === WALL SWITCH ===
+const switchPlate = box(0.08, 0.12, 0.02, mat.white);
+switchPlate.position.set(3.38, 1.3, 2.5);
+scene.add(switchPlate);
+
+// === PENCIL HOLDER on desk ===
+const pencilHolder = cylinder(0.05, 0.06, 0.12, 12, mat.metal);
+pencilHolder.position.set(1.5, 1.1, -2.8);
+scene.add(pencilHolder);
+// Pencils
+for(let i = 0; i < 4; i++) {
+const pencil = cylinder(0.005, 0.005, 0.18, 6, bookColors[i]);
+pencil.position.set(1.5 + (i-1.5)*0.015, 1.2, -2.8);
+pencil.rotation.z = (Math.random()-0.5)*0.2;
+scene.add(pencil);
+}
+
+// === HOODIE draped on chair ===
+const hoodie = box(0.4, 0.3, 0.1, mat.fabricDark);
+hoodie.position.set(2.4, 0.85, -1.6);
+hoodie.rotation.set(0.3, 0.5, 0.2);
+scene.add(hoodie);
+
+// === BASKETBALL in corner ===
+const basketball = new THREE.Mesh(
+new THREE.SphereGeometry(0.15, 16, 12),
+mat.orange
+);
+basketball.position.set(2.8, 0.15, 2.5);
+basketball.castShadow = true;
+scene.add(basketball);
+
+// === WALL MODE TOGGLE ===
+let wallMode = 4;
+
+function setWalls(mode) {
+wallMode = mode;
+document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+
+if(mode === 4) {
+walls.forEach(w => w.visible = true);
+ceiling.visible = true;
+document.getElementById('btnWalls4').classList.add('active');
+} else if(mode === 2) {
+// Only back wall and left wall (the "back" from isometric view)
+walls[0].visible = true;  // back
+walls[1].visible = true;  // left
+walls[2].visible = false; // front
+walls[3].visible = false; // right
+ceiling.visible = false;
+document.getElementById('btnWalls2').classList.add('active');
+} else {
+walls.forEach(w => w.visible = false);
+ceiling.visible = false;
+document.getElementById('btnWalls0').classList.add('active');
+}
+}
+
+// === ANIMATION ===
+let time = 0;
+function animate() {
+requestAnimationFrame(animate);
+time += 0.016;
+controls.update();
+
+// Subtle RGB animation
+rgbStrip.color.setHSL((time * 0.1) % 1, 1, 0.5);
+rgbStrip.intensity = 0.3 + Math.sin(time * 2) * 0.1;
+
+// Screen flicker
+mat.screenGlow.emissiveIntensity = 0.8 + Math.sin(time * 3) * 0.2;
+
+renderer.render(scene, camera);
+}
+animate();
+
+// === RESIZE ===
+window.addEventListener('resize', () => {
+camera.aspect = window.innerWidth / window.innerHeight;
+camera.updateProjectionMatrix();
+renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
