@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>☠️ Остров Черепа — 3D Квест (Senior Track)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ruslan+Display&family=Orbitron:wght@600;800;900&family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; user-select: none; }
+  html, body { height:100%; overflow:hidden; background:#0d1824; font-family:'Rubik',sans-serif; }
+  #scene { display:block; width:100%; height:100%; cursor:grab; }
+  #scene:active { cursor:grabbing; }
+
+  /* ── PERGAMENT MAP PANEL ── */
+  #panel {
+    position:fixed; top:20px; left:20px; width:min(350px, calc(100vw - 40px));
+    padding:18px 20px 15px; color:#3a2410; border-radius:12px;
+    background:linear-gradient(160deg,#f2e2b8,#e6d09b 60%,#dcc287);
+    border:2px solid #6e441f; transform:rotate(-0.7deg);
+    box-shadow:0 18px 40px rgba(8,18,28,.6), inset 0 0 0 1px #f7ecd0, inset 0 0 70px rgba(120,80,30,.20);
+    animation:drop .8s cubic-bezier(.2,.9,.3,1.25) both; z-index:5;
+    transition:transform .35s ease, box-shadow .35s ease;
+  }
+  #panel:hover { transform:rotate(-0.7deg) translateY(-3px); box-shadow:0 26px 50px rgba(8,18,28,.65), inset 0 0 0 1px #f7ecd0; }
+  
+  .eyebrow { display:flex; justify-content:space-between; align-items:center; font-size:10.5px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:#7a4a22; }
+  .grade-badge { background:#b3161c; color:#fff; font-family:'Orbitron',sans-serif; font-size:10px; padding:3px 8px; border-radius:10px; letter-spacing:1px; }
+
+  #panel h1 {
+    font-family:'Ruslan Display',serif; font-weight:400;
+    font-size:clamp(28px, 4vw, 36px); line-height:.98;
+    margin:7px 0 8px; color:#2a1708; letter-spacing:1px;
+    text-shadow:0 1px 0 #f7ead0;
+  }
+  #panel h1 .skull { color:#b3161c; }
+  #panel .sub { font-size:12.5px; line-height:1.4; color:#4c3117; margin-bottom:12px; }
+
+  /* ── QUEST TRACKER ── */
+  .tracker-box { display:flex; flex-direction:column; gap:6px; border-top:1px dashed #8a5a2b; padding-top:10px; margin-bottom:10px; }
+  .tracker-item { font-size:12px; font-weight:600; color:#5c3a1a; display:flex; align-items:center; gap:8px; }
+  .tracker-item.done { color:#15803d; font-weight:700; }
+  .tracker-item i { width:16px; text-align:center; }
+
+  .controls-hint { font-size:11px; color:#6e4423; border-top:1px dashed #8a5a2b; padding-top:8px; }
+  .controls-hint b { color:#3a2410; font-weight:700; }
+
+  /* ── COMPASS ── */
+  #compass {
+    position:fixed; top:20px; right:20px; width:85px; height:85px; border-radius:50%; z-index:5;
+    background:radial-gradient(circle at 35% 30%, #f6e8c2, #dcc48d 72%);
+    border:3px solid #6e441f;
+    box-shadow:0 12px 30px rgba(8,18,28,.45), inset 0 0 18px rgba(110,68,31,.35);
+    animation:pop .6s .35s cubic-bezier(.3,1.5,.5,1) both;
+  }
+  .disc { position:absolute; inset:0; }
+  .c { position:absolute; translate:-50% -50%; font-weight:700; font-size:11px; color:#4c3117; }
+  .c-n { left:50%; top:12px; color:#b3161c; font-size:12px; }
+  .c-s { left:50%; top:72px; } .c-e { left:72px; top:50%; } .c-w { left:12px; top:50%; }
+  .needle { position:absolute; left:50%; top:50%; width:8px; height:48px; translate:-50% -50%; filter:drop-shadow(0 2px 2px rgba(60,30,0,.35)); }
+  .needle::before { content:''; position:absolute; left:0; top:0; border-left:4px solid transparent; border-right:4px solid transparent; border-bottom:24px solid #c1161f; }
+  .needle::after { content:''; position:absolute; left:0; bottom:0; border-left:4px solid transparent; border-right:4px solid transparent; border-top:24px solid #6d5a35; }
+  .pin { position:absolute; left:50%; top:50%; width:8px; height:8px; translate:-50% -50%; background:#6e441f; border-radius:50%; box-shadow:0 0 0 2px #f2e2b8; }
+
+  /* ── ERROR TOAST NOTIFICATION ── */
+  #error-toast {
+    position:fixed; top:110px; left:50%; transform:translateX(-50%) translateY(-20px);
+    background:rgba(180, 20, 30, 0.95); border:2px solid #ff4d6d; color:#ffffff;
+    padding:12px 24px; border-radius:30px; font-family:'Orbitron', sans-serif;
+    font-size:13px; font-weight:700; letter-spacing:0.5px;
+    box-shadow:0 0 25px rgba(255, 77, 109, 0.6); opacity:0; pointer-events:none;
+    transition:all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.27); z-index:20;
+  }
+  #error-toast.active { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ── BOTTOM BAR & RESET BUTTON ── */
+  #bottom-bar {
+    position:fixed; left:50%; bottom:20px; translate:-50%; z-index:10;
+    display:flex; align-items:center; gap:15px;
+  }
+  #hint {
+    padding:10px 20px; border-radius:999px; color:#e8f1f4;
+    background:rgba(12,24,34,.85); border:1px solid rgba(255,255,255,.2);
+    font-size:13px; font-weight:500; backdrop-filter:blur(6px);
+    box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .reset-cam-btn {
+    background:rgba(251, 191, 36, 0.2); border:1px solid #fbbf24; color:#fbbf24;
+    font-family:'Orbitron', sans-serif; font-size:12px; font-weight:700;
+    padding:10px 18px; border-radius:20px; cursor:pointer; display:none;
+    align-items:center; gap:8px; transition:all 0.2s ease;
+  }
+  .reset-cam-btn:hover { background:#fbbf24; color:#0d1824; box-shadow:0 0 15px #fbbf24; }
+
+  .vignette { position:fixed; inset:0; pointer-events:none; z-index:4; background:radial-gradient(120% 90% at 50% 42%, transparent 55%, rgba(8,16,28,.42)); }
+
+  @keyframes drop { from{ opacity:0; transform:translateY(-18px) rotate(-2deg); } to{ opacity:1; transform:rotate(-0.7deg); } }
+  @keyframes pop { from{ opacity:0; transform:scale(.5); } to{ opacity:1; transform:scale(1); } }
+
+  @media (max-width:700px){
+    #panel { top:12px; left:12px; padding:14px 16px 12px; }
+    #compass { width:65px; height:65px; top:12px; right:12px; }
+    #error-toast { width:90%; text-align:center; font-size:11px; }
+    #bottom-bar { flex-direction:column; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- UI MAP PANEL -->
+<header id="panel">
+  <div class="eyebrow">
+    <span>⚓ Квесты Капитана</span>
+    <span class="grade-badge">🔴 SENIOR</span>
+  </div>
+  <h1><span class="skull">☠</span> Остров Черепа</h1>
+  <p class="sub">Поверните флагшток на пристани, разблокируйте сундук и запустите Клад Капитана!</p>
+  
+  <div class="tracker-box">
+    <div class="tracker-item" id="task-1"><i class="fa-solid fa-dharmachakra"></i> 1. Поднять флагшток на Пристани</div>
+    <div class="tracker-item" id="task-2"><i class="fa-solid fa-box-open"></i> 2. Открыть Сундук Сокровищ</div>
+    <div class="tracker-item" id="task-3"><i class="fa-solid fa-ship"></i> 3. Активировать Корабль Призраков</div>
+  </div>
+
+  <p class="controls-hint"><b>ЛКМ</b> — клик / осмотр · <b>Колесо</b> — зум · <b>ПКМ</b> — сдвиг</p>
+</header>
+
+<!-- COMPASS UI -->
+<div id="compass" title="Север">
+  <div class="disc" id="disc">
+    <span class="c c-n">С</span><span class="c c-e">В</span>
+    <span class="c c-s">Ю</span><span class="c c-w">З</span>
+    <div class="needle"></div>
+    <div class="pin"></div>
+  </div>
+</div>
+
+<!-- ERROR TOAST -->
+<div id="error-toast">
+  <i class="fa-solid fa-triangle-exclamation"></i> <span id="error-msg">Ошибка: Сначала поверните механизм на пристани!</span>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <div id="hint">🧭 Наводите мышь на объекты. ЛКМ — взаимодействие.</div>
+  <button class="reset-cam-btn" id="btn-reset-cam" onclick="resetCamera()">
+    <i class="fa-solid fa-video"></i> Вернуть обзор
+  </button>
+</div>
+
+<div class="vignette"></div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// === STATE MACHINE & GAME LOGIC ===
+const state = {
+  pierActive: false,
+  chestState: 'LOCKED', // 'LOCKED', 'UNLOCKED', 'ACTIVE'
+  shipActive: false,
+  secretFound: false,
+  cameraMode: 'INTRO', // 'INTRO', 'OVERVIEW', 'CLOSEUP'
+  targetCamPos: new THREE.Vector3(17.5, 12.5, 22),
+  targetLookAt: new THREE.Vector3(0, 1.4, 0)
+};
+
+/* ═══════════ РЕНДЕРЕР, СЦЕНА, КАМЕРА ═══════════ */
+const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('scene'), antialias:true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0xd9e6e6, 55, 130);
+
+const camera = new THREE.PerspectiveCamera(50, innerWidth/innerHeight, 0.1, 400);
+const camFrom = new THREE.Vector3(42, 27, 48);
+const camTo   = new THREE.Vector3(17.5, 12.5, 22);
+camera.position.copy(camFrom);
+
+/* ═══════════ НЕБО-КУПОЛ С СОЛНЦЕМ ═══════════ */
+const sunDir = new THREE.Vector3(30, 38, 16).normalize();
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { uSun: { value: sunDir } },
+  vertexShader: `varying vec3 vDir;
+    void main(){ vDir = normalize(position);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `varying vec3 vDir; uniform vec3 uSun;
+    void main(){
+      float h = clamp(vDir.y, 0.0, 1.0);
+      vec3 col = mix(vec3(1.0,0.87,0.66), vec3(0.13,0.40,0.74), pow(h, 0.62));
+      float s = max(dot(vDir, uSun), 0.0);
+      col += vec3(1.0,0.93,0.62) * (pow(s,300.0)*1.15 + pow(s,10.0)*0.28);
+      if (vDir.y < 0.0) col = mix(col, vec3(1.0,0.87,0.66), clamp(-vDir.y*4.0,0.0,1.0));
+      gl_FragColor = vec4(col, 1.0);
+    }`
+});
+scene.add(new THREE.Mesh(new THREE.SphereGeometry(180, 32, 16), skyMat));
+
+/* ═══════════ СВЕТ ═══════════ */
+const hemiLight = new THREE.HemisphereLight(0xcfe8ff, 0x46634d, 0.9);
+scene.add(hemiLight);
+
+const sun = new THREE.DirectionalLight(0xfff1cf, 1.8);
+sun.position.set(30, 38, 16);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+sun.shadow.camera.left = -27; sun.shadow.camera.right = 27;
+sun.shadow.camera.top = 27;   sun.shadow.camera.bottom = -27;
+sun.shadow.camera.near = 5;   sun.shadow.camera.far = 100;
+sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+scene.add(sun);
+
+/* ═══════════ РЕЛЬЕФ ОСТРОВА ═══════════ */
+const ISLAND_R = 14;
+const noise2 = (x, z) =>
+  Math.sin(x*0.55 + 1.7) * Math.cos(z*0.62 - 0.6) * 0.55 +
+  Math.sin(x*1.35 - z*0.75 + 0.5) * 0.30 +
+  Math.cos(x*0.30 + z*0.95 + 2.1) * 0.40;
+
+function groundH(x, z){
+  const d = Math.hypot(x, z), t = d / ISLAND_R;
+  if (t >= 1) return -1.5 - Math.pow(t - 1, 1.15) * 3.4;
+  const dome = Math.pow(1 - t*t, 1.3);
+  return dome * 3.2 + noise2(x, z) * 0.5 * dome * Math.min(1, t * 1.6);
+}
+
+function groundColor(h, out){
+  const a = new THREE.Color(), b = new THREE.Color();
+  if (h < -1.1) return out.setHex(0x3f5a55);
+  if (h <  0.15) return out.lerpColors(a.setHex(0x3f5a55), b.setHex(0xb39062), (h + 1.1) / 1.25);
+  if (h <  1.35) return out.lerpColors(a.setHex(0xc7a36d), b.setHex(0xe9d6a0), (h - 0.15) / 1.2);
+  return out.lerpColors(a.setHex(0xe9d6a0), b.setHex(0x6fa24e), Math.min(1, (h - 1.35) / 1.15));
+}
+
+let isleGeo = new THREE.PlaneGeometry(46, 46, 120, 120);
+isleGeo.rotateX(-Math.PI/2);
+{
+  const p = isleGeo.attributes.position;
+  for (let i = 0; i < p.count; i++) p.setY(i, groundH(p.getX(i), p.getZ(i)));
+}
+isleGeo = isleGeo.toNonIndexed();
+isleGeo.computeVertexNormals();
+{
+  const p = isleGeo.attributes.position;
+  const colors = new Float32Array(p.count * 3);
+  const c = new THREE.Color();
+  for (let f = 0; f < p.count; f += 3){
+    const h = (p.getY(f) + p.getY(f+1) + p.getY(f+2)) / 3;
+    groundColor(h, c);
+    c.offsetHSL(0, 0, (Math.random() - 0.5) * 0.055);
+    for (let k = 0; k < 3; k++) colors.set([c.r, c.g, c.b], (f + k) * 3);
+  }
+  isleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+}
+const island = new THREE.Mesh(isleGeo,
+  new THREE.MeshStandardMaterial({ vertexColors:true, flatShading:true, roughness:0.95 }));
+island.receiveShadow = true;
+scene.add(island);
+
+/* ═══════════ МОРЕ С ВОЛНАМИ ═══════════ */
+const seaGeo = new THREE.PlaneGeometry(140, 140, 64, 64);
+seaGeo.rotateX(-Math.PI/2);
+const seaBase = seaGeo.attributes.position.array.slice();
+const sea = new THREE.Mesh(seaGeo, new THREE.MeshStandardMaterial({
+  color:0x1b74a6, transparent:true, opacity:0.88, flatShading:true, roughness:0.5, metalness:0.08
+}));
+sea.receiveShadow = true;
+scene.add(sea);
+
+function foamRing(rIn, rOut){
+  const m = new THREE.Mesh(new THREE.RingGeometry(rIn, rOut, 96),
+    new THREE.MeshBasicMaterial({ color:0xffffff, transparent:true, side:THREE.DoubleSide, depthWrite:false }));
+  m.rotation.x = -Math.PI/2; m.position.y = 0.34; scene.add(m); return m;
+}
+const foam1 = foamRing(13.1, 14.5);
+const foam2 = foamRing(14.7, 15.6);
+
+/* ═══════════ ТРИ ПАЛЬМЫ ═══════════ */
+const trunkMat  = new THREE.MeshStandardMaterial({ color:0x8a5a33, flatShading:true, roughness:1 });
+const cocoMat   = new THREE.MeshStandardMaterial({ color:0x5b3a1e, flatShading:true, roughness:1 });
+const cocoGeo   = new THREE.SphereGeometry(0.11, 7, 6);
+const frondMats = [0x2f8f46, 0x3aa050, 0x27803c].map(c =>
+  new THREE.MeshStandardMaterial({ color:c, flatShading:true, roughness:0.9, side:THREE.DoubleSide }));
+
+function makeFrondGeo(len){
+  const g = new THREE.PlaneGeometry(len, 0.5, 9, 1);
+  g.rotateX(-Math.PI/2);
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++){
+    const x = p.getX(i) + len/2, u = x/len;
+    const z = p.getZ(i) * (1 - u * 0.88);
+    const y = (0.9*u - 1.5*u*u) * len * 0.45;
+    p.setXYZ(i, x, y, z);
+  }
+  g.computeVertexNormals();
+  return g;
+}
+const frondGeo = makeFrondGeo(2.3);
+
+function makePalm(height, lean, x, z, phase){
+  const g = new THREE.Group();
+  const curve = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0,0,0),
+    new THREE.Vector3(lean*0.25, height*0.42, 0),
+    new THREE.Vector3(lean*0.70, height*0.78, 0),
+    new THREE.Vector3(lean, height, 0)
+  ]);
+  const trunk = new THREE.Mesh(new THREE.TubeGeometry(curve, 12, 0.13, 6), trunkMat);
+  trunk.castShadow = true; g.add(trunk);
+
+  const canopy = new THREE.Group();
+  canopy.position.set(lean, height, 0);
+  g.add(canopy);
+
+  for (let i = 0; i < 3; i++){
+    const a = i * 2.1 + 0.5;
+    const nut = new THREE.Mesh(cocoGeo, cocoMat);
+    nut.position.set(Math.cos(a)*0.22, -0.12, Math.sin(a)*0.22);
+    nut.castShadow = true; canopy.add(nut);
+  }
+  const N = 8;
+  for (let i = 0; i < N; i++){
+    const f = new THREE.Mesh(frondGeo, frondMats[i % 3]);
+    f.rotation.y = (i / N) * Math.PI * 2 + Math.random() * 0.2;
+    f.rotation.z = (Math.random() - 0.5) * 0.25;
+    f.castShadow = true;
+    canopy.add(f);
+  }
+  g.rotation.y = Math.atan2(-z, x);
+  g.position.set(x, groundH(x, z) - 0.12, z);
+  scene.add(g);
+  return { canopy, phase };
+}
+const palms = [
+  makePalm(3.1, 0.55, -3.4,  6.6, 0.0),
+  makePalm(3.8, 0.60,  4.7,  5.1, 1.7),
+  makePalm(3.3, 0.50,  1.1, -6.9, 3.4)
+];
+
+/* ═══════════ МАРШРУТ И МЕТКА X ═══════════ */
+const routePts = [[-4.3,11.8],[-1.4,8.3],[3.4,6.6],[7.3,1.6],[5.7,-4.3],[3.2,-7.5]]
+  .map(([x,z]) => new THREE.Vector3(x, groundH(x, z) + 0.35, z));
+const route = new THREE.Line(
+  new THREE.BufferGeometry().setFromPoints(new THREE.CatmullRomCurve3(routePts).getPoints(160)),
+  new THREE.LineDashedMaterial({ color:0xff2d1e, dashSize:0.65, gapSize:0.4 })
+);
+route.computeLineDistances();
+scene.add(route);
+
+const xSpot = new THREE.Vector3(3.2, groundH(3.2, -7.5), -7.5);
+const xGroup = new THREE.Group();
+xGroup.position.copy(xSpot); xGroup.position.y += 0.06;
+{
+  const beamMat = new THREE.MeshStandardMaterial({ color:0x9e1414, flatShading:true, roughness:0.8 });
+  const beamGeo = new THREE.BoxGeometry(1.2, 0.12, 0.26);
+  const b1 = new THREE.Mesh(beamGeo, beamMat); b1.rotation.y =  Math.PI/4;
+  const b2 = new THREE.Mesh(beamGeo, beamMat); b2.rotation.y = -Math.PI/4;
+  b1.castShadow = b2.castShadow = true;
+  xGroup.add(b1, b2);
+}
+scene.add(xGroup);
+
+const ping = new THREE.Mesh(new THREE.RingGeometry(0.5, 0.62, 48),
+  new THREE.MeshBasicMaterial({ color:0xff3b2f, transparent:true, side:THREE.DoubleSide, depthWrite:false }));
+ping.rotation.x = -Math.PI/2;
+ping.position.set(xSpot.x, xSpot.y + 0.12, xSpot.z);
+scene.add(ping);
+
+/* ═══════════ СУНДУК СОКРОВИЩ (INTERACTIVE OBJECT 2) ═══════════ */
+const chest = new THREE.Group();
+const chestPos = new THREE.Vector3(4.15, groundH(4.15, -8.1), -8.1);
+chest.position.copy(chestPos);
+chest.rotation.y = Math.atan2(xSpot.x - chestPos.x, xSpot.z - chestPos.z);
+let lidGroup;
+let chestBaseMesh;
+
+{
+  const wood = new THREE.MeshStandardMaterial({ color:0x7a4a26, flatShading:true, roughness:0.85, emissive:0x000000 });
+  const gold = new THREE.MeshStandardMaterial({ color:0xd9a93c, flatShading:true, metalness:0.7, roughness:0.35 });
+  
+  chestBaseMesh = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.5, 0.6), wood);
+  chestBaseMesh.position.y = 0.25; chestBaseMesh.castShadow = true; chest.add(chestBaseMesh);
+  
+  const band = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.12, 0.64), gold);
+  band.position.y = 0.25; chest.add(band);
+  
+  lidGroup = new THREE.Group(); lidGroup.position.set(0, 0.5, -0.3);
+  const lid = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.26, 0.6), wood);
+  lid.position.set(0, 0.13, 0.3); lid.castShadow = true;
+  const lidBand = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.08, 0.64), gold);
+  lidBand.position.set(0, 0.13, 0.3);
+  lidGroup.add(lid, lidBand); chest.add(lidGroup);
+
+  const lumpGeo = new THREE.DodecahedronGeometry(0.09, 0);
+  for (let i = 0; i < 4; i++){
+    const lump = new THREE.Mesh(lumpGeo, new THREE.MeshStandardMaterial({
+      color:0xffc94d, flatShading:true, metalness:0.8, roughness:0.25, emissive:0x664400 }));
+    lump.position.set((Math.random()-0.5)*0.55, 0.5, (Math.random()-0.5)*0.3);
+    chest.add(lump);
+  }
+}
+chest.userData = { id: 'CHEST', name: 'Сундук Сокровищ', meshToHighlight: chestBaseMesh };
+scene.add(chest);
+
+const glow = new THREE.PointLight(0xffc24d, 10, 9, 2);
+glow.position.set(chestPos.x, chestPos.y + 1.1, chestPos.z);
+scene.add(glow);
+
+const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.75, 4.6, 16, 1, true),
+  new THREE.MeshBasicMaterial({ color:0xffd977, transparent:true, opacity:0.2,
+    blending:THREE.AdditiveBlending, side:THREE.DoubleSide, depthWrite:false }));
+beam.position.set(chestPos.x, chestPos.y + 2.4, chestPos.z);
+scene.add(beam);
+
+const sparkles = [];
+for (let i = 0; i < 3; i++){
+  const s = new THREE.Mesh(new THREE.OctahedronGeometry(0.07),
+    new THREE.MeshBasicMaterial({ color:0xffd54a }));
+  scene.add(s); sparkles.push(s);
+}
+
+/* ═══════════ ПРИСТАНЬ (INTERACTIVE OBJECT 1) ═══════════ */
+const pier = new THREE.Group();
+let pierPennant;
+{
+  const wood = new THREE.MeshStandardMaterial({ color:0x8a6a42, flatShading:true, roughness:0.95, emissive:0x000000 });
+  const postGeo = new THREE.CylinderGeometry(0.09, 0.09, 1.5, 6);
+  for (const px of [-1.7, 0, 1.9]) for (const pz of [-0.62, 0.62]){
+    const post = new THREE.Mesh(postGeo, wood);
+    post.position.set(px, -0.15, pz);
+    post.castShadow = true; pier.add(post);
+  }
+  for (let i = 0; i < 6; i++){
+    const plank = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.09, 1.5), wood);
+    plank.position.set(-1.9 + i * 0.75, 0.62 + (Math.random()-0.5)*0.03, 0);
+    plank.rotation.y = (Math.random()-0.5) * 0.06;
+    plank.castShadow = plank.receiveShadow = true;
+    pier.add(plank);
+  }
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.5, 6), wood);
+  mast.position.set(1.9, 1.35, -0.55); mast.castShadow = true; pier.add(mast);
+  
+  pierPennant = new THREE.Mesh(new THREE.ShapeGeometry(
+    new THREE.Shape([ new THREE.Vector2(0,0), new THREE.Vector2(0.48,-0.1), new THREE.Vector2(0,-0.26) ])),
+    new THREE.MeshStandardMaterial({ color:0xc1161f, emissive:0x000000, side:THREE.DoubleSide }));
+  pierPennant.position.set(1.93, 2.1, -0.55); pier.add(pierPennant);
+
+  const ang = THREE.MathUtils.degToRad(110);
+  pier.rotation.y = Math.atan2(-Math.sin(ang), Math.cos(ang));
+  pier.position.set(Math.cos(ang) * 14.5, 0, Math.sin(ang) * 14.5);
+  pier.userData = { id: 'PIER', name: 'Пристань и Флагшток', meshToHighlight: pierPennant };
+  scene.add(pier);
+}
+
+function stake(pt){
+  const g = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.04, 0.9, 6),
+    new THREE.MeshStandardMaterial({ color:0x6e4a26, flatShading:true }));
+  pole.position.y = 0.45; pole.castShadow = true; g.add(pole);
+  const flag = new THREE.Mesh(new THREE.ShapeGeometry(
+    new THREE.Shape([ new THREE.Vector2(0,0), new THREE.Vector2(0.4,-0.08), new THREE.Vector2(0,-0.22) ])),
+    new THREE.MeshBasicMaterial({ color:0xff2d1e, side:THREE.DoubleSide }));
+  flag.position.y = 0.88; g.add(flag);
+  g.position.copy(pt); g.position.y -= 0.3;
+  scene.add(g); return flag;
+}
+const stakes = [stake(routePts[0]), stake(routePts[3])];
+
+/* ═══════════ КОРАБЛЬ ПРИЗРАКОВ (INTERACTIVE OBJECT 3 + EASTER EGG) ═══════════ */
+const ship = new THREE.Group();
+let flagGroup, secretSkullMesh;
+{
+  const hullShape = new THREE.Shape();
+  hullShape.moveTo(-2.3, 0);
+  hullShape.bezierCurveTo(-2.4, 0.5, -1.8, 0.75, -1.0, 0.8);
+  hullShape.lineTo(1.1, 0.85);
+  hullShape.bezierCurveTo(2.3, 0.75, 3.0, 0.35, 3.3, 0);
+  hullShape.bezierCurveTo(3.0, -0.35, 2.3, -0.75, 1.1, -0.85);
+  hullShape.lineTo(-1.0, -0.8);
+  hullShape.bezierCurveTo(-1.8, -0.75, -2.4, -0.5, -2.3, 0);
+
+  const hullGeo = new THREE.ExtrudeGeometry(hullShape, { depth:0.95, bevelEnabled:false });
+  hullGeo.rotateX(-Math.PI/2);
+  const hullMat = new THREE.MeshStandardMaterial({ color:0x4d3018, flatShading:true, roughness:0.9, emissive:0x000000 });
+  const hull = new THREE.Mesh(hullGeo, hullMat);
+  hull.position.y = -0.35; hull.castShadow = true; ship.add(hull);
+
+  const railPts = hullShape.getPoints(24).map(p => p.clone().multiplyScalar(1.05));
+  const railGeo = new THREE.ExtrudeGeometry(new THREE.Shape(railPts), { depth:0.14, bevelEnabled:false });
+  railGeo.rotateX(-Math.PI/2);
+  const rail = new THREE.Mesh(railGeo, new THREE.MeshStandardMaterial({ color:0x6b4423, flatShading:true, roughness:0.9 }));
+  rail.position.y = 0.52; rail.castShadow = true; ship.add(rail);
+
+  const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.09, 3.9, 8), new THREE.MeshStandardMaterial({ color:0x5d3c1e, flatShading:true }));
+  mast.position.set(0.3, 2.5, 0); mast.castShadow = true; ship.add(mast);
+
+  const yard = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.1, 6), mast.material);
+  yard.rotation.z = Math.PI/2; yard.position.set(0.3, 3.55, 0); ship.add(yard);
+
+  const sailGeo = new THREE.PlaneGeometry(1.9, 1.7, 8, 6);
+  {
+    const p = sailGeo.attributes.position;
+    for (let i = 0; i < p.count; i++){
+      const v = (p.getY(i) + 0.85) / 1.7;
+      p.setZ(i, 0.32 * Math.sin(v * Math.PI));
+    }
+    sailGeo.computeVertexNormals();
+  }
+  const sail = new THREE.Mesh(sailGeo, new THREE.MeshStandardMaterial({ color:0xefe6cf, flatShading:true, side:THREE.DoubleSide, roughness:0.9 }));
+  sail.position.set(0.3, 2.65, 0.1); sail.castShadow = true; ship.add(sail);
+
+  flagGroup = new THREE.Group(); flagGroup.position.set(0.3, 4.55, 0);
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.55), new THREE.MeshBasicMaterial({ color:0x151515, side:THREE.DoubleSide }));
+  flag.position.x = 0.5; flagGroup.add(flag);
+  
+  secretSkullMesh = new THREE.Mesh(new THREE.CircleGeometry(0.13, 12),
+    new THREE.MeshStandardMaterial({ color:0xf2f2f2, emissive:0x000000, side:THREE.DoubleSide }));
+  secretSkullMesh.position.set(0.5, 0.03, 0.01); flagGroup.add(secretSkullMesh);
+  
+  for (const r of [0.7, -0.7]){
+    const bone = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.045, 0.01), new THREE.MeshBasicMaterial({ color:0xf2f2f2, side:THREE.DoubleSide }));
+    bone.position.set(0.5, -0.1, 0.012); bone.rotation.z = r; flagGroup.add(bone);
+  }
+  ship.add(flagGroup);
+
+  ship.userData = { id: 'SHIP', name: 'Корабль Призраков', meshToHighlight: hull };
+  secretSkullMesh.userData = { id: 'SECRET_SKULL', name: 'Черный Флаг Черепа', meshToHighlight: secretSkullMesh };
+}
+ship.position.set(19, 0, -14);
+{
+  const f = new THREE.Vector3(-19, 0, 14).normalize();
+  ship.rotation.y = Math.atan2(-f.z, f.x);
+}
+scene.add(ship);
+
+/* ═══════════ КАМНИ, ЧАЙКИ, ОБЛАКА ═══════════ */
+{
+  const rockMat = new THREE.MeshStandardMaterial({ color:0x7d8590, flatShading:true, roughness:1 });
+  [[8.5,9.2,0.55],[-10.2,4.5,0.8],[9.8,-6.5,0.65],[-7,-9.8,0.5],[16.5,3,0.75],[-15.8,-8,0.65]]
+  .forEach(([x,z,r]) => {
+    const rock = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), rockMat);
+    rock.position.set(x, groundH(x,z) + r*0.25, z);
+    rock.rotation.set(Math.random()*3, Math.random()*3, Math.random()*3);
+    rock.castShadow = rock.receiveShadow = true;
+    scene.add(rock);
+  });
+}
+
+const birds = [];
+{
+  const birdMat = new THREE.MeshBasicMaterial({ color:0x2e2e33, side:THREE.DoubleSide });
+  for (let i = 0; i < 3; i++){
+    const b = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.42, 5), birdMat);
+    body.rotation.z = -Math.PI/2; b.add(body);
+    const wingGeo = new THREE.PlaneGeometry(0.22, 0.6);
+    wingGeo.rotateX(-Math.PI/2);
+    const wl = new THREE.Mesh(wingGeo, birdMat); wl.position.z =  0.3;
+    const wr = new THREE.Mesh(wingGeo, birdMat); wr.position.z = -0.3;
+    b.add(wl, wr); scene.add(b);
+    birds.push({ g:b, wl, wr, r:9 + i*2.4, h:6.6 + i*0.9, sp:0.22 - i*0.04, ph:i*2.3 });
+  }
+}
+
+const cloudsGroup = new THREE.Group();
+scene.add(cloudsGroup);
+{
+  const cloudMat = new THREE.MeshStandardMaterial({
+    color:0xffffff, flatShading:true, roughness:1, transparent:true, opacity:0.94 });
+  [[18,0.6,12,1.8],[26,2.0,14,2.4],[34,3.4,15,2.8],[22,4.4,12.5,2.0],[30,5.4,14,2.6]]
+  .forEach(([r,a,y,s],i) => {
+    const cl = new THREE.Group();
+    const n = 4 + (i % 2);
+    for (let k = 0; k < n; k++){
+      const puff = new THREE.Mesh(new THREE.IcosahedronGeometry(0.6 + Math.random()*0.7, 0), cloudMat);
+      puff.position.set((k - n/2) * 1.1 + Math.random()*0.5, Math.random()*0.3, (Math.random()-0.5)*1.2);
+      puff.scale.y = 0.55; puff.castShadow = true;
+      cl.add(puff);
+    }
+    cl.position.set(Math.cos(a)*r, y, Math.sin(a)*r);
+    cl.scale.setScalar(s);
+    cl.userData.baseY = y; cl.userData.i = i;
+    cloudsGroup.add(cl);
+  });
+}
+
+/* ═══════════ PARTICLE FIREWORKS FOR FINALE ═══════════ */
+const fireworksCount = 300;
+const fireworksGeo = new THREE.BufferGeometry();
+const fireworksPos = new Float32Array(fireworksCount * 3);
+const fireworksVel = [];
+
+for (let i = 0; i < fireworksCount; i++) {
+  fireworksPos[i * 3] = chestPos.x;
+  fireworksPos[i * 3 + 1] = chestPos.y + 1;
+  fireworksPos[i * 3 + 2] = chestPos.z;
+  
+  fireworksVel.push(new THREE.Vector3(
+    (Math.random() - 0.5) * 0.4,
+    Math.random() * 0.6,
+    (Math.random() - 0.5) * 0.4
+  ));
+}
+fireworksGeo.setAttribute('position', new THREE.BufferAttribute(fireworksPos, 3));
+
+const fireworksMat = new THREE.PointsMaterial({
+  color: 0xfbbf24,
+  size: 0.25,
+  transparent: true,
+  opacity: 0
+});
+const fireworksParticles = new THREE.Points(fireworksGeo, fireworksMat);
+scene.add(fireworksParticles);
+
+/* ═══════════ RAYCASTER & INTERACTION LOGIC ═══════════ */
+const interactiveObjects = [pierPennant, chestBaseMesh, ship.children[0], secretSkullMesh];
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let hoveredMesh = null;
+
+window.addEventListener('pointermove', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+  raycaster.setFromCamera(mouse, camera);
+  const intersects = raycaster.intersectObjects(interactiveObjects);
+
+  if (intersects.length > 0) {
+    const mesh = intersects[0].object;
+    if (hoveredMesh !== mesh) {
+      if (hoveredMesh && hoveredMesh.material.emissive) hoveredMesh.material.emissive.setHex(0x000000);
+      hoveredMesh = mesh;
+      document.body.style.cursor = 'pointer';
+      if (mesh.material && mesh.material.emissive) {
+        mesh.material.emissive.setHex(0x554400);
+      }
+    }
+  } else {
+    if (hoveredMesh && hoveredMesh.material.emissive) {
+      hoveredMesh.material.emissive.setHex(0x000000);
+      hoveredMesh = null;
+    }
+    document.body.style.cursor = 'default';
+  }
+});
+
+/* CLICK HANDLER & STATE MACHINE */
+window.addEventListener('click', () => {
+  if (!hoveredMesh) return;
+
+  let targetObj = hoveredMesh;
+  while (targetObj && !targetObj.userData.id && targetObj.parent) {
+    targetObj = targetObj.parent;
+  }
+  const data = targetObj.userData;
+
+  // ACTION 1: PIER CLICK
+  if (data.id === 'PIER' && !state.pierActive) {
+    state.pierActive = true;
+    state.chestState = 'UNLOCKED';
+    
+    pierPennant.material.color.setHex(0x00f0ff);
+    pierPennant.material.emissive.setHex(0x00aaff);
+
+    // UI Update
+    const t1 = document.getElementById('task-1');
+    t1.classList.add('done');
+    t1.innerHTML = '<i class="fa-solid fa-check"></i> 1. Флагшток запущен! Замок сундука снят.';
+  }
+
+  // ACTION 2: CHEST CLICK
+  else if (data.id === 'CHEST') {
+    // SENIOR IMPOSSIBILITY CONDITION CHECK
+    if (state.chestState === 'LOCKED') {
+      showErrorToast('Ошибка: Сначала поверните механизм на Пристани!');
+      
+      // Red Flash Warning Effect
+      glow.color.setHex(0xff0000);
+      glow.intensity = 20;
+      setTimeout(() => {
+        glow.color.setHex(0xffc24d);
+        glow.intensity = 9;
+      }, 600);
+      return;
+    }
+
+    if (state.chestState === 'UNLOCKED') {
+      state.chestState = 'ACTIVE';
+      state.shipActive = true;
+
+      // UI Update
+      const t2 = document.getElementById('task-2');
+      t2.classList.add('done');
+      t2.innerHTML = '<i class="fa-solid fa-check"></i> 2. Сундук Капитана открыт!';
+
+      const t3 = document.getElementById('task-3');
+      t3.classList.add('done');
+      t3.innerHTML = '<i class="fa-solid fa-check"></i> 3. Корабль Призраков пробуждён!';
+
+      // TRIGGER WORLD SHIFT & FINALE
+      triggerWorldShift();
+    }
+  }
+
+  // ACTION 3: SECRET SKULL CLICK (EASTER EGG)
+  else if (data.id === 'SECRET_SKULL') {
+    state.secretFound = true;
+    showErrorToast('Пасхалка! Проклятие Пиратов: Золотой шторм активирован!');
+    secretSkullMesh.material.color.setHex(0xffaa00);
+    secretSkullMesh.material.emissive.setHex(0xffaa00);
+  }
+});
+
+/* WORLD SHIFT & CAMERA LERP */
+function triggerWorldShift() {
+  // 1. Shift Atmosphere & Lighting to Gold Sunset
+  hemiLight.color.setHex(0xffaa00);
+  sun.color.setHex(0xff8800);
+  sun.intensity = 2.5;
+
+  // 2. Open Chest Lid
+  lidGroup.rotation.x = -Math.PI / 1.6;
+
+  // 3. Fireworks Particle Activation
+  fireworksMat.opacity = 1.0;
+
+  // 4. Lerp Camera to Close-Up Focus
+  state.cameraMode = 'CLOSEUP';
+  state.targetCamPos.set(chestPos.x + 4, chestPos.y + 3, chestPos.z + 5);
+  state.targetLookAt.set(chestPos.x, chestPos.y + 0.5, chestPos.z);
+
+  document.getElementById('btn-reset-cam').style.display = 'inline-flex';
+}
+
+window.resetCamera = function() {
+  state.cameraMode = 'OVERVIEW';
+  state.targetCamPos.copy(camTo);
+  state.targetLookAt.set(0, 1.4, 0);
+  document.getElementById('btn-reset-cam').style.display = 'none';
+};
+
+function showErrorToast(msg) {
+  const toast = document.getElementById('error-toast');
+  document.getElementById('error-msg').innerText = msg;
+  toast.classList.add('active');
+  setTimeout(() => toast.classList.remove('active'), 3200);
+}
+
+/* ═══════════ УПРАВЛЕНИЕ ═══════════ */
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 1.1, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 9;
+controls.maxDistance = 55;
+controls.maxPolarAngle = 1.46;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 0.5;
+controls.enabled = false;
+
+let idleTimer;
+controls.addEventListener('start', () => { controls.autoRotate = false; clearTimeout(idleTimer); });
+controls.addEventListener('end',   () => { idleTimer = setTimeout(() => controls.autoRotate = true, 7000); });
+renderer.domElement.addEventListener('contextmenu', e => e.preventDefault());
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+/* ═══════════ ЦИКЛ АНИМАЦИИ ═══════════ */
+const clock = new THREE.Clock();
+const disc = document.getElementById('disc');
+const easeOutCubic = x => 1 - Math.pow(1 - x, 3);
+let introT = 0, introDone = false;
+
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const t = clock.elapsedTime;
+
+  /* кинематографичный подлёт и LERP управления */
+  if (!introDone){
+    introT += dt / 2.4;
+    camera.position.lerpVectors(camFrom, camTo, easeOutCubic(Math.min(1, introT)));
+    camera.lookAt(0, 1.4, 0);
+    if (introT >= 1){ introDone = true; controls.enabled = true; }
+  } else {
+    if (state.cameraMode === 'CLOSEUP' || state.cameraMode === 'OVERVIEW') {
+      camera.position.lerp(state.targetCamPos, 0.05);
+      controls.target.lerp(state.targetLookAt, 0.05);
+    }
+    controls.update();
+    disc.style.transform = `rotate(${controls.getAzimuthalAngle()}rad)`;
+  }
+
+  /* волны */
+  const sp = seaGeo.attributes.position;
+  for (let i = 0; i < sp.count; i++){
+    const x = seaBase[i*3], z = seaBase[i*3+2];
+    sp.array[i*3+1] = 0.16*Math.sin(x*0.32 + t*1.35)
+                    + 0.11*Math.cos(z*0.27 - t*0.95)
+                    + 0.06*Math.sin((x+z)*0.5 + t*1.8);
+  }
+  sp.needsUpdate = true;
+  seaGeo.computeVertexNormals();
+
+  /* пена у берега */
+  foam1.material.opacity = 0.22 + 0.16*Math.sin(t*1.6);
+  foam2.material.opacity = 0.13 + 0.10*Math.sin(t*1.6 + 2.1);
+  foam1.scale.setScalar(1 + 0.008*Math.sin(t*1.6));
+
+  /* пальмы качаются */
+  for (const p of palms){
+    p.canopy.rotation.z = 0.045*Math.sin(t*1.1 + p.phase);
+    p.canopy.rotation.x = 0.045*Math.cos(t*0.9 + p.phase);
+  }
+
+  /* пульс метки X */
+  const ph = (t % 2) / 2;
+  ping.scale.setScalar(0.6 + ph*1.9);
+  ping.material.opacity = 0.55*(1 - ph);
+
+  /* сундук: крышка, свет, искры */
+  if (state.chestState !== 'ACTIVE') {
+    lidGroup.rotation.x = -(0.5 + 0.18*Math.sin(t*1.3));
+  }
+  glow.intensity = 9 + 4*Math.sin(t*2.2);
+  beam.material.opacity = 0.16 + 0.08*Math.sin(t*2);
+  sparkles.forEach((s, i) => {
+    const a = t*1.6 + i*2.09;
+    s.position.set(chestPos.x + Math.cos(a)*0.5, chestPos.y + 1.1 + i*0.9 + 0.15*Math.sin(t*3+i), chestPos.z + Math.sin(a)*0.5);
+    s.rotation.y = t*3 + i;
+  });
+
+  /* флаги */
+  const penn = pierPennant;
+  penn.rotation.y = 0.3*Math.sin(t*5);
+  stakes.forEach((f, i) => f.rotation.y = 0.3*Math.sin(t*5 + i*1.7));
+
+  /* корабль на волнах (плавает интенсивнее при пасхалке) */
+  const mult = state.secretFound ? 2.5 : 1.0;
+  ship.position.y = 0.12*Math.sin(t*0.85*mult);
+  ship.rotation.z = 0.045*Math.sin(t*0.7*mult + 1);
+  ship.rotation.x = 0.030*Math.sin(t*0.55*mult + 2);
+  flagGroup.rotation.y = 0.25*Math.sin(t*4.2);
+
+  /* АНИМАЦИЯ ФЕЙЕРВЕРКА ИЗ ЧАСТИЦ */
+  if (state.shipActive) {
+    const pPos = fireworksGeo.attributes.position.array;
+    for (let i = 0; i < fireworksCount; i++) {
+      pPos[i * 3] += fireworksVel[i].x;
+      pPos[i * 3 + 1] += fireworksVel[i].y;
+      pPos[i * 3 + 2] += fireworksVel[i].z;
+
+      fireworksVel[i].y -= 0.008; // Тяготение
+
+      if (pPos[i * 3 + 1] < chestPos.y) {
+        pPos[i * 3] = chestPos.x;
+        pPos[i * 3 + 1] = chestPos.y + 1;
+        pPos[i * 3 + 2] = chestPos.z;
+        fireworksVel[i].set(
+          (Math.random() - 0.5) * 0.4,
+          Math.random() * 0.6,
+          (Math.random() - 0.5) * 0.4
+        );
+      }
+    }
+    fireworksGeo.attributes.position.needsUpdate = true;
+  }
+
+  /* чайки */
+  for (const b of birds){
+    const a = t*b.sp + b.ph;
+    b.g.position.set(Math.cos(a)*b.r, b.h + 0.4*Math.sin(t*2 + b.ph), Math.sin(a)*b.r);
+    b.g.rotation.y = Math.atan2(-Math.cos(a), -Math.sin(a));
+    const flap = 0.15 + 0.55*Math.sin(t*9 + b.ph);
+    b.wl.rotation.x =  flap;
+    b.wr.rotation.x = -flap;
+  }
+
+  /* облака дрейфуют */
+  cloudsGroup.rotation.y += dt*0.006;
+  cloudsGroup.children.forEach(cl => {
+    cl.position.y = cl.userData.baseY + 0.3*Math.sin(t*0.5 + cl.userData.i);
+  });
+
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>
