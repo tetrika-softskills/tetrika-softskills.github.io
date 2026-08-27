@@ -1,0 +1,1166 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#070913">
+  <title>Как бы ты поступил на месте героя?</title>
+  <style>
+    :root {
+      --bg: #070913;
+      --panel: rgba(16, 19, 36, .92);
+      --panel-soft: rgba(23, 27, 48, .78);
+      --text: #f7f7fb;
+      --muted: #aeb3c7;
+      --line: rgba(255, 255, 255, .12);
+      --accent: #9c62ff;
+      --accent-2: #42d6ff;
+      --shadow: 0 28px 80px rgba(0, 0, 0, .44);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    button, textarea { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+
+    .app {
+      min-height: 100vh;
+      min-height: 100dvh;
+      position: relative;
+      isolation: isolate;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(118, 68, 255, .19), transparent 31%),
+        radial-gradient(circle at 86% 74%, rgba(33, 184, 255, .12), transparent 27%),
+        linear-gradient(145deg, #05070e 0%, #0b0e1b 58%, #070913 100%);
+    }
+
+    .app::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      opacity: .18;
+      background-image:
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(to bottom, #000, transparent 86%);
+    }
+
+    .screen {
+      display: none;
+      min-height: 100vh;
+      min-height: 100dvh;
+      animation: screenIn .48s cubic-bezier(.22,.8,.23,1) both;
+    }
+
+    .screen.active { display: flex; }
+
+    @keyframes screenIn {
+      from { opacity: 0; transform: scale(.985) translateY(9px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .start-screen {
+      align-items: center;
+      justify-content: center;
+      padding: 32px;
+      text-align: center;
+    }
+
+    .start-screen::before,
+    .start-screen::after {
+      content: "";
+      position: absolute;
+      width: min(46vw, 660px);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      filter: blur(4px);
+      z-index: -1;
+      opacity: .7;
+    }
+
+    .start-screen::before {
+      left: -19vw;
+      top: -24vw;
+      background: radial-gradient(circle, rgba(154, 82, 255, .33), transparent 65%);
+    }
+
+    .start-screen::after {
+      right: -21vw;
+      bottom: -25vw;
+      background: radial-gradient(circle, rgba(20, 197, 255, .22), transparent 66%);
+    }
+
+    .start-content {
+      width: min(980px, 100%);
+      display: grid;
+      justify-items: center;
+      gap: clamp(34px, 6vw, 70px);
+    }
+
+    .start-title {
+      margin: 0;
+      max-width: 930px;
+      font-size: clamp(44px, 7vw, 94px);
+      line-height: .98;
+      letter-spacing: -.055em;
+      text-wrap: balance;
+      text-shadow: 0 0 42px rgba(155, 99, 255, .26);
+    }
+
+    .primary-button,
+    .secondary-button {
+      min-height: 58px;
+      border: 0;
+      border-radius: 999px;
+      padding: 0 27px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 11px;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform .2s ease, filter .2s ease, opacity .2s ease, box-shadow .2s ease;
+    }
+
+    .primary-button {
+      background: linear-gradient(120deg, #8b4dff, #6558ff 54%, #1bbbe7);
+      box-shadow: 0 14px 38px rgba(103, 78, 255, .36), inset 0 1px rgba(255,255,255,.3);
+    }
+
+    .secondary-button {
+      background: rgba(255,255,255,.08);
+      border: 1px solid var(--line);
+      box-shadow: inset 0 1px rgba(255,255,255,.07);
+    }
+
+    .primary-button:hover,
+    .secondary-button:hover { transform: translateY(-2px); filter: brightness(1.08); }
+    .primary-button:active,
+    .secondary-button:active { transform: translateY(0) scale(.98); }
+    .primary-button:focus-visible,
+    .secondary-button:focus-visible,
+    .icon-button:focus-visible,
+    .poster-card:focus-visible,
+    .option-card:focus-visible,
+    .answer-mode:focus-visible {
+      outline: 3px solid #fff;
+      outline-offset: 4px;
+    }
+
+    .primary-button:disabled {
+      opacity: .34;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+      box-shadow: none;
+    }
+
+    .button-icon {
+      width: 25px;
+      height: 25px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .button-icon svg,
+    .icon-button svg,
+    .answer-mode svg { width: 100%; height: 100%; }
+
+    .catalog-screen {
+      align-items: stretch;
+      padding: clamp(22px, 3vw, 42px);
+    }
+
+    .catalog-shell {
+      width: min(1120px, 100%);
+      margin: auto;
+      position: relative;
+    }
+
+    .floating-back {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 3;
+    }
+
+    .icon-button {
+      width: 50px;
+      height: 50px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: #fff;
+      background: rgba(10, 13, 25, .76);
+      backdrop-filter: blur(14px);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background .2s ease, transform .2s ease;
+    }
+
+    .icon-button:hover { background: rgba(255,255,255,.13); transform: translateX(-2px); }
+    .icon-button svg { width: 23px; height: 23px; }
+
+    .poster-grid {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: clamp(14px, 1.8vw, 24px);
+      padding-top: 68px;
+    }
+
+    .poster-card {
+      position: relative;
+      height: clamp(210px, calc((100dvh - 178px) / 2), 300px);
+      min-height: 210px;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      padding: 0;
+      background: #141726;
+      color: #fff;
+      text-align: left;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+      isolation: isolate;
+      transition: transform .36s cubic-bezier(.2,.8,.2,1), border-color .25s ease, box-shadow .3s ease;
+    }
+
+    .poster-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(to top, rgba(4,6,13,.92) 0%, rgba(4,6,13,.12) 38%, rgba(4,6,13,0) 52%);
+    }
+
+    .poster-card::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      z-index: 3;
+      border-radius: inherit;
+      border: 2px solid transparent;
+      box-shadow: inset 0 0 0 0 var(--card-accent);
+      transition: border-color .25s ease, box-shadow .3s ease;
+      pointer-events: none;
+    }
+
+    .poster-card:hover {
+      transform: translateY(-8px) scale(1.012);
+      border-color: color-mix(in srgb, var(--card-accent) 66%, white 10%);
+      box-shadow: 0 26px 74px color-mix(in srgb, var(--card-accent) 25%, transparent);
+    }
+
+    .poster-card:hover::after {
+      border-color: color-mix(in srgb, var(--card-accent) 75%, white 15%);
+      box-shadow: inset 0 0 45px color-mix(in srgb, var(--card-accent) 18%, transparent);
+    }
+
+    .poster-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      position: absolute;
+      inset: 0;
+      transition: transform .6s cubic-bezier(.2,.8,.2,1), filter .3s ease;
+    }
+
+    .poster-card:hover img { transform: scale(1.055); filter: saturate(1.08); }
+
+    .poster-title {
+      position: absolute;
+      left: clamp(18px, 2vw, 28px);
+      right: 18px;
+      bottom: clamp(16px, 1.8vw, 24px);
+      z-index: 2;
+      max-width: calc(100% - 36px);
+      font-size: clamp(22px, 2.2vw, 32px);
+      font-weight: 900;
+      line-height: 1.03;
+      letter-spacing: -.035em;
+      text-wrap: balance;
+      text-shadow: 0 4px 24px rgba(0,0,0,.62);
+    }
+
+    .case-screen { align-items: stretch; }
+
+    .case-layout {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      grid-template-columns: minmax(330px, 42%) minmax(0, 58%);
+      background: linear-gradient(150deg, #080b14, #101426);
+    }
+
+    .case-visual {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      background: #0c0f1b;
+      isolation: isolate;
+    }
+
+    .case-visual::before {
+      content: "";
+      position: absolute;
+      inset: -30px;
+      z-index: -2;
+      background-image: var(--case-image);
+      background-size: cover;
+      background-position: center;
+      filter: blur(28px) brightness(.4) saturate(1.15);
+      transform: scale(1.12);
+    }
+
+    .case-visual::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        linear-gradient(to top, rgba(4,6,13,.96) 0%, rgba(4,6,13,.08) 48%, rgba(4,6,13,.5) 100%),
+        linear-gradient(to right, transparent 78%, rgba(8,11,20,.72));
+    }
+
+    .case-image {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .case-back {
+      position: absolute;
+      z-index: 4;
+      top: max(24px, env(safe-area-inset-top));
+      left: 24px;
+    }
+
+    .case-story-title {
+      position: absolute;
+      left: clamp(24px, 4vw, 48px);
+      right: 28px;
+      bottom: clamp(30px, 5vw, 58px);
+      z-index: 3;
+      margin: 0;
+      font-size: clamp(34px, 4.2vw, 64px);
+      line-height: .98;
+      letter-spacing: -.045em;
+      text-wrap: balance;
+      text-shadow: 0 7px 28px rgba(0,0,0,.75);
+    }
+
+    .case-content {
+      min-width: 0;
+      padding: clamp(30px, 5vw, 72px) clamp(24px, 5vw, 72px) 54px;
+      overflow: auto;
+    }
+
+    .case-content-inner {
+      width: min(860px, 100%);
+      margin: auto;
+    }
+
+    .case-kicker {
+      margin: 0 0 15px;
+      color: var(--accent-2);
+      font-size: 13px;
+      font-weight: 900;
+      letter-spacing: .15em;
+      text-transform: uppercase;
+    }
+
+    .situation-text {
+      margin: 0 0 34px;
+      color: #d8dbe7;
+      font-size: clamp(17px, 1.55vw, 21px);
+      line-height: 1.62;
+    }
+
+    .main-question {
+      margin: 0 0 24px;
+      font-size: clamp(28px, 3.1vw, 44px);
+      line-height: 1.1;
+      letter-spacing: -.035em;
+      text-wrap: balance;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 13px;
+    }
+
+    .option-card {
+      position: relative;
+      min-height: 132px;
+      border: 1px solid rgba(255,255,255,.13);
+      border-radius: var(--radius-md);
+      padding: 20px 20px 20px 66px;
+      color: #f4f4f8;
+      background: rgba(255,255,255,.055);
+      text-align: left;
+      line-height: 1.42;
+      font-weight: 680;
+      cursor: pointer;
+      overflow: hidden;
+      transition: transform .22s ease, opacity .22s ease, border-color .22s ease, background .22s ease, box-shadow .22s ease;
+    }
+
+    .options-grid.large-copy .option-card {
+      font-size: 18px;
+    }
+
+    .option-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(255,255,255,.27);
+      background: rgba(255,255,255,.085);
+    }
+
+    .option-number {
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      background: rgba(255,255,255,.075);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      transition: color .2s ease, background .2s ease;
+    }
+
+    .option-check {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      width: 29px;
+      height: 29px;
+      border-radius: 50%;
+      background: #fff;
+      color: #121526;
+      display: grid;
+      place-items: center;
+      opacity: 0;
+      transform: scale(.55) rotate(-20deg);
+      transition: opacity .2s ease, transform .3s cubic-bezier(.2,1.5,.4,1);
+      box-shadow: 0 6px 20px rgba(0,0,0,.25);
+    }
+
+    .option-check svg { width: 18px; height: 18px; }
+
+    .options-grid.has-selection .option-card:not(.selected) { opacity: .43; }
+
+    .option-card.selected {
+      transform: scale(1.018);
+      border-color: color-mix(in srgb, var(--accent) 75%, white 15%);
+      background: color-mix(in srgb, var(--accent) 17%, rgba(255,255,255,.055));
+      box-shadow: 0 12px 34px color-mix(in srgb, var(--accent) 18%, transparent), inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
+    }
+
+    .option-card.selected .option-number { color: #fff; background: var(--accent); }
+    .option-card.selected .option-check { opacity: 1; transform: scale(1) rotate(0); }
+
+    .case-action {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: rgba(2, 4, 11, .84);
+      backdrop-filter: blur(16px);
+    }
+
+    .modal.open { display: grid; animation: fadeIn .25s ease both; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .modal-card {
+      position: relative;
+      width: min(760px, 100%);
+      max-height: calc(100vh - 44px);
+      max-height: calc(100dvh - 44px);
+      overflow: auto;
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: var(--radius-xl);
+      padding: clamp(28px, 5vw, 55px);
+      background:
+        radial-gradient(circle at 92% 3%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 33%),
+        linear-gradient(145deg, rgba(24,28,50,.98), rgba(12,15,29,.98));
+      box-shadow: 0 35px 100px rgba(0,0,0,.64), inset 0 1px rgba(255,255,255,.08);
+      animation: modalIn .38s cubic-bezier(.2,.9,.2,1) both;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: translateY(24px) scale(.96); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .modal-question {
+      margin: 0 0 30px;
+      padding-right: 34px;
+      font-size: clamp(29px, 4vw, 45px);
+      line-height: 1.08;
+      letter-spacing: -.04em;
+      text-wrap: balance;
+    }
+
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      width: 42px;
+      height: 42px;
+    }
+
+    .answer-modes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 13px;
+    }
+
+    .answer-mode {
+      min-height: 94px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      padding: 17px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      color: #f7f7fb;
+      background: rgba(255,255,255,.055);
+      font-weight: 800;
+      text-align: left;
+      cursor: pointer;
+      transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    .answer-mode:hover { transform: translateY(-2px); border-color: rgba(255,255,255,.28); }
+    .answer-mode.selected {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 18%, rgba(255,255,255,.055));
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent);
+    }
+
+    .answer-mode svg {
+      width: 28px;
+      height: 28px;
+      padding: 4px;
+      overflow: visible;
+      color: var(--accent-2);
+      flex: 0 0 auto;
+    }
+
+    .answer-field {
+      width: 100%;
+      min-height: 145px;
+      margin-top: 14px;
+      padding: 18px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      outline: none;
+      color: #fff;
+      background: rgba(3,5,12,.48);
+      line-height: 1.5;
+      display: none;
+    }
+
+    .answer-field.visible { display: block; animation: reveal .22s ease both; }
+    .answer-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
+    .answer-field::placeholder { color: #7f8499; }
+
+    @keyframes reveal { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+    .modal-action {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 22px;
+    }
+
+    .finish-screen {
+      align-items: center;
+      justify-content: center;
+      padding: 26px;
+      text-align: center;
+    }
+
+    .finish-card {
+      width: min(780px, 100%);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      padding: clamp(40px, 7vw, 76px) clamp(25px, 6vw, 66px);
+      background:
+        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 28%, transparent), transparent 42%),
+        rgba(17,20,37,.9);
+      box-shadow: var(--shadow);
+    }
+
+    .finish-mark {
+      width: 82px;
+      height: 82px;
+      margin: 0 auto 24px;
+      border-radius: 26px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 16px 38px color-mix(in srgb, var(--accent) 34%, transparent);
+      transform: rotate(-4deg);
+    }
+
+    .finish-mark svg { width: 43px; height: 43px; transform: rotate(4deg); }
+
+    .finish-title {
+      margin: 0 0 34px;
+      font-size: clamp(38px, 6vw, 68px);
+      line-height: 1;
+      letter-spacing: -.05em;
+    }
+
+    .finish-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    .diagnostic-card {
+      width: min(900px, 100%);
+      text-align: left;
+      padding-top: clamp(30px, 5vw, 54px);
+      padding-bottom: clamp(30px, 5vw, 54px);
+    }
+
+    .diagnostic-card .finish-mark { margin-bottom: 18px; }
+    .diagnostic-card .finish-title { margin-bottom: 10px; text-align: center; }
+
+    .result-story {
+      margin: 0 0 26px;
+      color: var(--accent-2);
+      font-size: 18px;
+      font-weight: 850;
+      text-align: center;
+    }
+
+    .result-block {
+      margin-top: 12px;
+      padding: 17px 19px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,.05);
+    }
+
+    .result-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--accent-2);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+
+    .result-block strong { display: block; line-height: 1.4; }
+    .result-block p { margin: 7px 0 0; color: var(--muted); line-height: 1.5; }
+
+    .result-skills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 20px 0 26px;
+    }
+
+    .result-skill {
+      padding: 9px 12px;
+      border: 1px solid color-mix(in srgb, var(--accent) 48%, transparent);
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .result-intro {
+      margin: 0 0 16px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .indicator-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin: 0 0 28px;
+    }
+
+    .indicator-card {
+      min-height: 86px;
+      padding: 15px 16px;
+      border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--line));
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: color-mix(in srgb, var(--accent) 10%, rgba(255,255,255,.04));
+      line-height: 1.4;
+      font-weight: 760;
+    }
+
+    .indicator-number {
+      width: 32px;
+      height: 32px;
+      flex: 0 0 auto;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: var(--accent);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    @media (max-width: 980px) {
+      .poster-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .poster-card { height: clamp(220px, 31vw, 330px); min-height: 220px; }
+      .case-layout { grid-template-columns: 1fr; }
+      .case-visual { position: relative; height: min(55vh, 480px); }
+      .case-visual::after { background: linear-gradient(to top, rgba(8,11,20,.96), transparent 52%, rgba(4,6,13,.45)); }
+      .case-story-title { font-size: clamp(34px, 7vw, 58px); }
+      .case-content { padding-top: 32px; }
+    }
+
+    @media (max-width: 700px) {
+      .start-screen { padding: 22px; }
+      .catalog-screen { padding: 18px; }
+      .poster-grid { grid-template-columns: 1fr; padding-top: 68px; }
+      .poster-card { min-height: min(58vw, 330px); border-radius: 23px; }
+      .options-grid { grid-template-columns: 1fr; }
+      .option-card { min-height: 104px; }
+      .case-action .primary-button { width: 100%; }
+      .answer-modes { grid-template-columns: 1fr; }
+      .modal-action .primary-button { width: 100%; }
+      .finish-actions { flex-direction: column; }
+      .finish-actions button { width: 100%; }
+      .indicator-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <section class="screen start-screen active" id="startScreen" aria-labelledby="gameTitle">
+      <div class="start-content">
+        <h1 class="start-title" id="gameTitle">Как бы ты поступил на месте героя?</h1>
+        <button class="primary-button" id="openCatalogButton" type="button">
+          <span class="button-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M8.2 5.2v13.6L19 12 8.2 5.2Z" fill="currentColor"/></svg>
+          </span>
+          Выбрать сюжет
+        </button>
+      </div>
+    </section>
+
+    <section class="screen catalog-screen" id="catalogScreen" aria-label="Сюжеты">
+      <div class="catalog-shell">
+        <button class="icon-button floating-back" id="catalogBackButton" type="button" aria-label="Вернуться на стартовый экран">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14.5 6-6 6 6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="poster-grid" id="posterGrid"></div>
+      </div>
+    </section>
+
+    <section class="screen case-screen" id="caseScreen" aria-label="Кейс">
+      <div class="case-layout">
+        <aside class="case-visual" id="caseVisual">
+          <img class="case-image" id="caseImage" alt="">
+          <button class="icon-button case-back" id="caseBackButton" type="button" aria-label="Вернуться к выбору сюжета">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m14.5 6-6 6 6 6" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <h2 class="case-story-title" id="caseStoryTitle"></h2>
+        </aside>
+        <div class="case-content">
+          <div class="case-content-inner">
+            <p class="case-kicker" id="stepLabel">Шаг 1 из 3</p>
+            <p class="situation-text" id="situationText"></p>
+            <h2 class="main-question" id="mainQuestion"></h2>
+            <div class="options-grid" id="optionsGrid"></div>
+            <div class="case-action">
+              <button class="primary-button" id="nextStepButton" type="button" disabled>
+                <span id="nextStepText">Дальше</span>
+                <span class="button-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none"><path d="M5 12h14M14 7l5 5-5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen finish-screen" id="finishScreen" aria-labelledby="finishTitle">
+      <div class="finish-card diagnostic-card">
+        <div class="finish-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4.3 4.3L19.5 6.6" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h2 class="finish-title" id="finishTitle">Что проверял у ребенка этот кейс?</h2>
+        <p class="result-story" id="resultStory"></p>
+        <div class="indicator-grid" id="resultIndicators"></div>
+        <div class="finish-actions">
+          <button class="secondary-button" id="anotherStoryButton" type="button">Выбрать другой сюжет</button>
+          <button class="primary-button" id="replayButton" type="button">
+            <span class="button-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none"><path d="M19 7v5h-5M18.2 15.2A7 7 0 1 1 17.8 8L19 9.1" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+            Пройти еще раз
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const ICON_CHECK = '<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 12.5 4 4L18.5 8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+    const stories = [
+      {
+        id: 'wednesday',
+        title: 'Уэнсдей',
+        accent: '#8c5bff',
+        accent2: '#4bc9ff',
+        poster: '../assets/g2-ca30519a017a.webp',
+        caseImage: '../assets/g2-aebe46c7a26e.webp',
+        situation: 'Уэнсдей подозревает, что в школе происходит что-то опасное. Чтобы проверить свою догадку, ей нужно проникнуть в закрытое помещение. Она просит Энид помочь, но не рассказывает всей правды и скрывает, насколько рискованным может оказаться этот план. Уэнсдей боится, что Энид откажется, если узнает все подробности. При этом действовать в одиночку тоже опасно.',
+        question: 'Как Уэнсдей должна поступить?',
+        options: [
+          'Рассказать Энид все и дать ей самой решить, готова ли она участвовать',
+          'Не рассказывать обо всех рисках',
+          'Пойти одной и не вмешивать Энид',
+          'Рассказать о риске и вместе придумать более безопасный план'
+        ],
+        followUp: 'Что в этой ситуации важнее - быстрее достичь цели или дать Энид возможность самой решить, готова ли она рисковать?'
+      },
+      {
+        id: 'gravity',
+        title: 'Гравити Фолз',
+        accent: '#e7a53a',
+        accent2: '#70d286',
+        poster: '../assets/g2-42868bffac4d.webp',
+        caseImage: '../assets/g2-bfd754524cc6.webp',
+        situation: 'Диппер находит доказательства того, что дядя Стэн что-то скрывает. По мнению Диппера, ждать опасно и нужно действовать прямо сейчас. Мэйбл верит Стэну. Она хорошо его знает и уверена, что у него может быть объяснение, хотя пока не может подтвердить это фактами.',
+        question: 'На что стоит опереться - на факты или на доверие к близкому человеку?',
+        options: [
+          'Поддержать Диппера, так как у него есть доказательства',
+          'Довериться Стэну, так как нельзя обвинять близкого человека',
+          'Выслушать всех и принять решение',
+          'Быстро проверить ту информацию, от которой больше всего зависит решение'
+        ],
+        followUp: 'Что должно иметь больший вес - доказательства, прошлый опыт общения с человеком или его объяснение?'
+      },
+      {
+        id: 'titans',
+        title: 'Атака титанов',
+        accent: '#80966b',
+        accent2: '#d1a15b',
+        poster: '../assets/g2-944bb3d80298.webp',
+        caseImage: '../assets/g2-2a6ef5d11e37.webp',
+        situation: 'Команда оказывается в опасной ситуации. Возможность выбраться еще есть, но времени остается мало. Эрен предлагает действовать немедленно, пока шанс не исчез. Армин считает, что поспешное решение может подвергнуть всех опасности. Он предлагает остановиться, быстро оценить обстановку и придумать план. Остальным участникам команды нужно решить, кого поддержать.',
+        question: 'Как команде принять решение в условиях риска?',
+        options: [
+          'Действовать немедленно, пока возможность еще остается. В такой ситуации промедление может оказаться опаснее ошибки',
+          'Следовать плану Армина и сначала продумать действия, даже если на обсуждение придется потратить часть оставшегося времени',
+          'Выделить короткое время на обсуждение, выбрать основные действия и сразу распределить роли между участниками команды',
+          'Остановиться и не рисковать, пока команда не поймет ситуацию лучше, даже если удобный момент будет упущен'
+        ],
+        followUp: 'Как понять, когда нужно действовать быстро, а когда лучше остановиться и подумать?'
+      },
+      {
+        id: 'kpop',
+        title: 'Кей-поп-охотницы на демонов',
+        accent: '#ff4eba',
+        accent2: '#33ddff',
+        poster: '../assets/g2-f9fbdbdbc99d.webp',
+        caseImage: '../assets/g2-eb8d9fec145b.webp',
+        situation: 'Руми скрывает от Миры и Зои важную часть своей личности. Она боится, что подруги перестанут ей доверять или больше не захотят видеть ее частью команды. Из-за этой тайны Руми начинает отдаляться от подруг, путаться в объяснениях и принимать важные решения одна.',
+        question: 'Что делать, если правда может изменить отношение друзей?',
+        options: [
+          'Продолжать хранить тайну, чтобы не разрушить отношения',
+          'Собрать подруг и честно открыть им всю правду, даже если их первая реакция может быть тяжелой',
+          'Выбрать человека, которому Руми доверяет больше всего, рассказать ему правду и попросить поддержки перед общим разговором',
+          'Начать разговор постепенно и сначала сообщить только ту часть, которую Руми пока готова обсуждать',
+          'Подождать, пока правда откроется сама'
+        ],
+        followUp: 'Как Руми может рассказать правду так, чтобы быть честной, но не чувствовать, что она обязана сразу объяснить абсолютно все?'
+      }
+    ];
+
+    const updatedStories = {
+      wednesday: {
+        situation: 'Уэнсдей хочет попасть в закрытую комнату. Она просит подругу Энид помочь, но не рассказывает, насколько это опасно.',
+        step1Question: 'Как поступить?',
+        step1Options: [
+          { text: 'Рассказать Энид все, даже если она откажется.' },
+          { text: 'Рассказать только часть и попросить помочь.' },
+          { text: 'Ничего не говорить. Дело важно выполнить.' }
+        ],
+        step2Question: 'Что может чувствовать Уэнсдей?',
+        newDetail: 'Энид узнает об опасности от другого человека.',
+        step3Question: 'Что теперь делать Уэнсдей?',
+        step3Options: [
+          { text: 'Признаться, почему она скрыла правду.' },
+          { text: 'Сказать, что без тайны план бы не получился.' }
+        ]
+      },
+      gravity: {
+        situation: 'Диппер уверен, что дядя Стэн что-то скрывает. Мэйбл просит не обвинять его без разговора.',
+        step1Question: 'Чью позицию поддержать?',
+        step1Options: [
+          { text: 'Поддержать Диппера и потребовать объяснений.' },
+          { text: 'Поддержать Мэйбл и попросить Диппера остановиться.' },
+          { text: 'Не вмешиваться, пока они сами не договорятся.' }
+        ],
+        step2Question: 'Почему дядя Стэн может скрывать что-то от детей?',
+        newDetail: 'Дядя Стэн отказывается все объяснять.',
+        step3Question: 'Что теперь делать?',
+        step3Options: [
+          { text: 'Настаивать на ответе.' },
+          { text: 'Перестать разговаривать с дядей Стэном.' },
+          { text: 'Скрыть находку, чтобы не начать конфликт.' }
+        ]
+      },
+      titans: {
+        situation: 'Эрен и Армин сильно поссорились. Эрен толкнул Армина, а Армин ударил его в ответ. Микаса увидела только конец драки.',
+        step1Question: 'Как поступить Микасе?',
+        step1Options: [
+          { text: 'Остановить Армина и поддержать Эрэна.' },
+          { text: 'Разнять обоих силой.' },
+          { text: 'Не вмешиваться и дать им закончить спор.' }
+        ],
+        step2Question: 'Почему драка может произойти даже между лучшими друзьями?',
+        newDetail: 'Микаса узнает, что Армин первым ударил.',
+        step3Question: 'Что теперь делать Микасе?',
+        step3Options: [
+          { text: 'Не вмешиваться в чужой конфликт.' },
+          { text: 'Выслушать каждого отдельно.' },
+          { text: 'Потребовать, чтобы друзья сразу извинились друг перед другом.' }
+        ]
+      },
+      kpop: {
+        situation: 'Руми скрывает от Миры и Зои важную правду. Она боится, что подруги перестанут дружить с ней.',
+        step1Question: 'Как поступить Руми?',
+        step1Options: [
+          { text: 'Рассказать всю правду сразу.' },
+          { text: 'Рассказать только одной подруге.' },
+          { text: 'Продолжать скрывать правду.' }
+        ],
+        step2Question: 'Что чувствует Руми, скрывая от всех правду?',
+        newDetail: 'Мира и Зои узнают часть правды от другого человека.',
+        step3Question: 'Что теперь делать Руми?',
+        step3Options: [
+          { text: 'Объяснить, почему она боялась говорить.' },
+          { text: 'Продолжать отрицать все.' },
+          { text: 'Рассказать оставшуюся часть правды.' }
+        ]
+      }
+    };
+
+    stories.forEach(story => Object.assign(story, updatedStories[story.id]));
+
+    const diagnosticIndicators = [
+      'Видит ли ситуацию с разных сторон',
+      'Понимает ли чувства каждого героя',
+      'Замечает ли отложенные последствия',
+      'Понимает ли, как действовать в кризисной ситуации',
+      'Может ли поставить себя на место другого',
+      'Способен ли изменить мнение после новой информации'
+    ];
+
+    const state = { storyId: null, step: 1, step1Choice: null, step3Choice: null };
+    const screens = {
+      start: document.getElementById('startScreen'),
+      catalog: document.getElementById('catalogScreen'),
+      case: document.getElementById('caseScreen'),
+      finish: document.getElementById('finishScreen')
+    };
+    const posterGrid = document.getElementById('posterGrid');
+    const caseVisual = document.getElementById('caseVisual');
+    const caseImage = document.getElementById('caseImage');
+    const caseStoryTitle = document.getElementById('caseStoryTitle');
+    const stepLabel = document.getElementById('stepLabel');
+    const situationText = document.getElementById('situationText');
+    const mainQuestion = document.getElementById('mainQuestion');
+    const optionsGrid = document.getElementById('optionsGrid');
+    const nextStepButton = document.getElementById('nextStepButton');
+    const nextStepText = document.getElementById('nextStepText');
+    const escapeHTML = value => String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+
+    function currentStory() { return stories.find(story => story.id === state.storyId); }
+    function showScreen(name) {
+      Object.values(screens).forEach(screen => screen.classList.remove('active'));
+      screens[name].classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    function resetCase() { state.step = 1; state.step1Choice = null; state.step3Choice = null; }
+
+    function renderCatalog() {
+      posterGrid.innerHTML = '';
+      stories.forEach(story => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'poster-card';
+        card.style.setProperty('--card-accent', story.accent);
+        card.setAttribute('aria-label', 'Выбрать сюжет ' + story.title);
+        card.innerHTML = '<img src="' + story.poster + '" alt=""><span class="poster-title">' + story.title + '</span>';
+        card.addEventListener('click', () => selectStory(story.id));
+        posterGrid.appendChild(card);
+      });
+    }
+
+    function selectStory(storyId) {
+      state.storyId = storyId;
+      resetCase();
+      renderCase();
+      showScreen('case');
+    }
+
+    function renderOptions(options, selectedIndex, onChoose) {
+      optionsGrid.innerHTML = '';
+      optionsGrid.classList.toggle('has-selection', selectedIndex !== null);
+      optionsGrid.style.display = '';
+      options.forEach((option, index) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'option-card' + (selectedIndex === index ? ' selected' : '');
+        card.setAttribute('aria-pressed', selectedIndex === index ? 'true' : 'false');
+        card.innerHTML = '<span class="option-number">' + String(index + 1).padStart(2, '0') + '</span><span>' + escapeHTML(option.text) + '</span><span class="option-check">' + ICON_CHECK + '</span>';
+        card.addEventListener('click', () => onChoose(index));
+        optionsGrid.appendChild(card);
+      });
+    }
+
+    function renderCase() {
+      const story = currentStory();
+      if (!story) return;
+      document.documentElement.style.setProperty('--accent', story.accent);
+      document.documentElement.style.setProperty('--accent-2', story.accent2);
+      caseVisual.style.setProperty('--case-image', 'url("' + story.caseImage + '")');
+      caseImage.src = story.caseImage;
+      caseImage.alt = 'Сцена из сюжета ' + story.title;
+      caseStoryTitle.textContent = story.title;
+      stepLabel.textContent = 'Шаг ' + state.step + ' из 3';
+      optionsGrid.classList.toggle('large-copy', state.step === 1 || state.step === 3);
+
+      if (state.step === 1) {
+        situationText.style.display = '';
+        situationText.textContent = story.situation;
+        mainQuestion.textContent = story.step1Question;
+        renderOptions(story.step1Options, state.step1Choice, index => {
+          state.step1Choice = index;
+          state.step3Choice = null;
+          renderCase();
+        });
+        nextStepButton.disabled = state.step1Choice === null;
+        nextStepText.textContent = 'Дальше';
+      } else if (state.step === 2) {
+        situationText.style.display = 'none';
+        situationText.textContent = '';
+        mainQuestion.textContent = story.step2Question;
+        optionsGrid.innerHTML = '';
+        optionsGrid.style.display = 'none';
+        nextStepButton.disabled = false;
+        nextStepText.textContent = 'Дальше';
+      } else {
+        situationText.style.display = '';
+        situationText.textContent = story.newDetail;
+        mainQuestion.textContent = story.step3Question;
+        renderOptions(story.step3Options, state.step3Choice, index => {
+          state.step3Choice = index;
+          renderCase();
+        });
+        nextStepButton.disabled = state.step3Choice === null;
+        nextStepText.textContent = 'Посмотреть результат';
+      }
+    }
+
+    function renderResult() {
+      const story = currentStory();
+      document.getElementById('resultStory').textContent = story.title;
+      document.getElementById('resultIndicators').innerHTML = diagnosticIndicators.map((indicator, index) => '<div class="indicator-card"><span class="indicator-number">' + (index + 1) + '</span><span>' + escapeHTML(indicator) + '</span></div>').join('');
+    }
+
+    document.getElementById('openCatalogButton').addEventListener('click', () => showScreen('catalog'));
+    document.getElementById('catalogBackButton').addEventListener('click', () => showScreen('start'));
+    document.getElementById('caseBackButton').addEventListener('click', () => {
+      if (state.step > 1) {
+        state.step -= 1;
+        renderCase();
+      } else {
+        showScreen('catalog');
+      }
+    });
+    nextStepButton.addEventListener('click', () => {
+      if (state.step < 3) {
+        state.step += 1;
+        renderCase();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        renderResult();
+        showScreen('finish');
+      }
+    });
+    document.getElementById('anotherStoryButton').addEventListener('click', () => {
+      state.storyId = null;
+      resetCase();
+      showScreen('catalog');
+    });
+    document.getElementById('replayButton').addEventListener('click', () => {
+      resetCase();
+      renderCase();
+      showScreen('case');
+    });
+
+    renderCatalog();
+  </script>
+</body>
+</html>
