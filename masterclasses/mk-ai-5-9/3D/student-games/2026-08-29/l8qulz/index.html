@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+<title>Cyber Rush — Endless Runner</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0d001a; font-family: 'Courier New', Courier, monospace; color: #fff; }
+  canvas { display: block; position: absolute; top: 0; left: 0; }
+
+  /* Loading screen */
+  #loading {
+    position: fixed; inset: 0; z-index: 100;
+    background: radial-gradient(circle at center, #1a0033 0%, #0d001a 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.6s ease;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+  .spinner {
+    width: 70px; height: 70px;
+    border: 4px solid transparent;
+    border-top-color: #00ffff;
+    border-right-color: #ff00ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-bottom: 24px;
+    box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading h1 {
+    font-size: 48px; font-weight: 900; letter-spacing: 10px;
+    background: linear-gradient(90deg, #00ffff, #ff00ff);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 0 20px rgba(255, 0, 255, 0.5);
+    margin-bottom: 8px;
+    animation: glitch 2s infinite;
+  }
+  #loading p { color: #00ffff; font-size: 14px; letter-spacing: 4px; text-transform: uppercase; animation: blink 1s infinite; }
+
+  /* HUD */
+  #hud {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    padding: 18px 24px; pointer-events: none;
+  }
+  .hud-panel {
+    background: rgba(13, 0, 26, 0.65);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(0, 255, 255, 0.4);
+    border-radius: 8px;
+    padding: 10px 18px;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.15), inset 0 0 10px rgba(255, 0, 255, 0.1);
+    min-width: 110px;
+  }
+  .hud-label { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: #ff00ff; font-weight: 700; text-shadow: 0 0 5px #ff00ff; }
+  .hud-value { font-size: 26px; font-weight: 800; color: #fff; text-shadow: 0 0 10px #00ffff; line-height: 1.2; }
+  .coin-row { display: flex; align-items: center; gap: 10px; }
+  .coin-icon {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: radial-gradient(circle, #ffff00 0%, #ffaa00 100%);
+    box-shadow: 0 0 15px #ffff00;
+    border: 2px solid #fff;
+    flex-shrink: 0;
+  }
+
+  /* Overlay (start / gameover) */
+  .overlay {
+    position: fixed; inset: 0; z-index: 50;
+    background: radial-gradient(ellipse at center, rgba(40, 0, 80, 0.85) 0%, rgba(13, 0, 26, 0.95) 100%);
+    backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    transition: opacity 0.4s ease;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .overlay h2 {
+    font-size: 80px; font-weight: 900; letter-spacing: 12px;
+    color: #fff; text-shadow: 0 0 30px #00ffff, 0 0 60px #ff00ff;
+    margin-bottom: 16px;
+    background: linear-gradient(180deg, #ffffff 0%, #00ffff 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .overlay .subtitle { font-size: 16px; letter-spacing: 6px; text-transform: uppercase; color: #ff00ff; margin-bottom: 40px; text-shadow: 0 0 10px #ff00ff;}
+  
+  .stat-block {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid #00ffff;
+    border-radius: 12px; padding: 20px 40px;
+    margin-bottom: 30px; text-align: center;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+  }
+  .stat-block .stat-label { font-size: 12px; letter-spacing: 4px; color: #ff00ff; text-transform: uppercase; margin-bottom: 5px;}
+  .stat-block .stat-value { font-size: 52px; font-weight: 900; color: #fff; text-shadow: 0 0 15px #00ffff; }
+  
+  .blink { 
+    animation: blink 1.2s ease-in-out infinite; 
+    font-size: 16px; letter-spacing: 4px; text-transform: uppercase; 
+    color: #ffff00; text-shadow: 0 0 10px #ffff00;
+    padding: 15px 30px; border: 1px solid rgba(255, 255, 0, 0.3); border-radius: 8px;
+    background: rgba(255, 255, 0, 0.05);
+  }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  @keyframes glitch { 0%, 100% { transform: translate(0); } 20% { transform: translate(-2px, 2px); } 40% { transform: translate(-2px, -2px); } 60% { transform: translate(2px, 2px); } 80% { transform: translate(2px, -2px); } }
+
+  /* Scanlines */
+  #scanlines {
+    position: fixed; inset: 0; z-index: 5; pointer-events: none;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0, 255, 255, 0.03) 3px, rgba(0,0,0,0) 4px);
+  }
+
+  /* Mobile hint */
+  #mobile-hint {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    z-index: 10; font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+    color: #00ffff; text-shadow: 0 0 5px #00ffff;
+    background: rgba(13, 0, 26, 0.8);
+    padding: 10px 20px; border-radius: 8px;
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="scanlines"></div>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <h1>CYBER RUSH</h1>
+  <p>INITIALIZING NEURAL LINK...</p>
+</div>
+
+<div id="hud">
+  <div class="hud-panel">
+    <div class="hud-label">Счёт</div>
+    <div class="hud-value" id="score">0</div>
+  </div>
+  <div class="hud-panel">
+    <div class="hud-label">Данные</div>
+    <div class="coin-row">
+      <div class="coin-icon"></div>
+      <div class="hud-value" id="coins">0</div>
+    </div>
+  </div>
+  <div class="hud-panel">
+    <div class="hud-label">Скорость</div>
+    <div class="hud-value" id="speed">0 <span style="font-size:14px;font-weight:600;">км/ч</span></div>
+  </div>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <h2>CYBER RUSH</h2>
+  <div class="subtitle">// NIGHT CITY SPRINT //</div>
+  <div class="blink">Нажми ПРОБЕЛ или тапни</div>
+</div>
+
+<div class="overlay hidden" id="gameOverOverlay">
+  <h2 style="color: #ff0044; text-shadow: 0 0 30px #ff0044; background: none; -webkit-text-fill-color: #ff0044;">SYSTEM CRASH</h2>
+  <div class="stat-block">
+    <div class="stat-label">Итоговый счёт</div>
+    <div class="stat-value" id="finalScore">0</div>
+  </div>
+  <div class="blink">ПРОБЕЛ ИЛИ ТАП ДЛЯ ПЕРЕЗАГРУЗКИ</div>
+</div>
+
+<div id="mobile-hint">← → — полосы · ↑ / свайп вверх — прыжок</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ---------- CORE STATE ----------
+const state = {
+  running: false,
+  gameOver: false,
+  lane: 1, // 0, 1, 2
+  targetLaneX: 0,
+  isJumping: false,
+  velocityY: 0,
+  playerBaseY: 0,
+  score: 0,
+  coins: 0,
+  speed: 0.35,
+  maxSpeed: 1.1,
+  speedInc: 0.00008,
+  distance: 0,
+  playerReady: false,
+  tilt: 0
+};
+
+const LANE_WIDTH = 2.4;
+const LANES = [-LANE_WIDTH, 0, LANE_WIDTH];
+const GRAVITY = -0.05; // Сделали чуть тяжелее для резкого прыжка
+const JUMP_VELOCITY = 0.85; 
+const SEGMENT_LENGTH = 20;
+const VISIBLE_SEGMENTS = 8;
+
+// ---------- RENDERER ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.1;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+// ---------- SCENE ----------
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d001a);
+scene.fog = new THREE.Fog(0x0d001a, 20, 85);
+
+// ---------- CAMERA ----------
+const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 200);
+camera.position.set(0, 5.5, 9);
+camera.lookAt(0, 1.5, -5);
+
+// ---------- LIGHTS ----------
+// Темное полушарие, чтобы тени не были абсолютно черными
+const hemi = new THREE.HemisphereLight(0x000033, 0x220033, 1.0);
+scene.add(hemi);
+
+const ambient = new THREE.AmbientLight(0x404060, 0.8);
+scene.add(ambient);
+
+// Главная фишка неонового города: Спотлайт (прожектор дрона), который светит строго на игрока
+const spotLight = new THREE.SpotLight(0xffffff, 3.5, 40, Math.PI / 4, 0.5, 1.0);
+spotLight.position.set(0, 10, 5);
+spotLight.castShadow = true;
+spotLight.shadow.mapSize.set(1024, 1024);
+spotLight.shadow.bias = -0.0005;
+scene.add(spotLight);
+scene.add(spotLight.target);
+
+// ---------- MATERIALS ----------
+const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x05050a, roughness: 0.1, metalness: 0.8 }); // Глянцевый асфальт
+const cyanNeonMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 2.0 });
+const magentaNeonMat = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2.0 });
+const buildingMat = new THREE.MeshStandardMaterial({ color: 0x0a0a12, roughness: 0.6, metalness: 0.5 });
+const windowCyanMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1.5 });
+const windowMagentaMat = new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 1.5 });
+const metalBlockMat = new THREE.MeshStandardMaterial({ color: 0x11111a, roughness: 0.3, metalness: 0.9 });
+const laserMat = new THREE.MeshStandardMaterial({ color: 0xff0044, emissive: 0xff0044, emissiveIntensity: 2.0, transparent: true, opacity: 0.7, side: THREE.DoubleSide });
+const coinMat = new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 1.5, metalness: 0.5 });
+
+// ---------- PLAYER ----------
+let player = null;
+let mixer = null;
+let playerPivot = new THREE.Group();
+scene.add(playerPivot);
+
+function createFallbackPlayer() {
+  const group = new THREE.Group();
+  const bodyGeo = new THREE.CapsuleGeometry(0.45, 1.1, 6, 12);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.3, metalness: 0.8, emissive: 0x00ffff, emissiveIntensity: 0.3 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 1.0;
+  body.castShadow = true; body.receiveShadow = true;
+  group.add(body);
+  
+  const visor = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.5), magentaNeonMat);
+  visor.position.set(0, 1.5, -0.3);
+  group.add(visor);
+
+  group.scale.set(1, 1, 1);
+  return group;
+}
+
+const loader = new GLTFLoader();
+loader.load(
+  'player_game.glb',
+  (gltf) => {
+    player = gltf.scene;
+    // Scale
+    const box = new THREE.Box3().setFromObject(player);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const scale = 2.0 / size.y;
+    player.scale.setScalar(scale);
+
+    // Recompute Y
+    const box2 = new THREE.Box3().setFromObject(player);
+    state.playerBaseY = -box2.min.y;
+    player.position.y = state.playerBaseY;
+
+    // Face forward
+    player.rotation.y = Math.PI;
+
+    // Shadows
+    player.traverse((obj) => {
+      if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; }
+    });
+
+    playerPivot.add(player);
+
+    // Animation
+    if (gltf.animations && gltf.animations.length > 0) {
+      mixer = new THREE.AnimationMixer(player);
+      let clip = gltf.animations.find(a => /run|walk/i.test(a.name)) || gltf.animations[0];
+      const action = mixer.clipAction(clip);
+      action.play();
+    }
+
+    state.playerReady = true;
+    onReady();
+  },
+  undefined,
+  (err) => {
+    console.warn('GLB not found, using fallback.', err);
+    player = createFallbackPlayer();
+    state.playerBaseY = 0;
+    player.position.y = state.playerBaseY;
+    playerPivot.add(player);
+    state.playerReady = true;
+    onReady();
+  }
+);
+
+// ---------- ROAD SEGMENTS ----------
+const segments = [];
+const obstacles = [];
+const coinObjects = [];
+
+function createSegment(zPos) {
+  const group = new THREE.Group();
+
+  // Road
+  const roadGeo = new THREE.PlaneGeometry(LANE_WIDTH * 3 + 1.2, SEGMENT_LENGTH);
+  const road = new THREE.Mesh(roadGeo, asphaltMat);
+  road.rotation.x = -Math.PI / 2;
+  road.position.y = 0;
+  road.receiveShadow = true;
+  group.add(road);
+
+  // Neon Edge Lines
+  for (let i = -1; i <= 1; i += 2) {
+    const edgeGeo = new THREE.PlaneGeometry(0.15, SEGMENT_LENGTH);
+    const edge = new THREE.Mesh(edgeGeo, magentaNeonMat);
+    edge.rotation.x = -Math.PI / 2;
+    edge.position.set(i * (LANE_WIDTH * 1.5 + 0.3), 0.01, 0);
+    group.add(edge);
+  }
+
+  // Cyan Dashed lines between lanes
+  for (let i = -1; i <= 1; i += 2) {
+    for (let d = -SEGMENT_LENGTH/2; d < SEGMENT_LENGTH/2; d += 2) {
+      const dashGeo = new THREE.PlaneGeometry(0.1, 1.0);
+      const dash = new THREE.Mesh(dashGeo, cyanNeonMat);
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(i * LANE_WIDTH * 0.5, 0.01, d);
+      group.add(dash);
+    }
+  }
+
+  // Procedural Cyber Buildings
+  const buildingCount = 4 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < buildingCount; i++) {
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const w = 3 + Math.random() * 4;
+    const d = 3 + Math.random() * 5;
+    const h = 10 + Math.random() * 25;
+    const x = side * (LANE_WIDTH * 1.5 + 1.5 + w/2 + Math.random() * 4);
+    const z = -SEGMENT_LENGTH / 2 + Math.random() * SEGMENT_LENGTH;
+
+    const bldg = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), buildingMat);
+    bldg.position.set(x, h/2, z);
+    bldg.castShadow = true; bldg.receiveShadow = true;
+    group.add(bldg);
+
+    // Window strips
+    const isCyan = Math.random() > 0.5;
+    const stripMat = isCyan ? windowCyanMat : windowMagentaMat;
+    const stripCount = Math.floor(h / 4);
+    for(let s = 0; s < stripCount; s++) {
+      if(Math.random() > 0.3) {
+        const strip = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.8, 0.5), stripMat);
+        strip.position.set(x - side * (w/2 + 0.01), 3 + s * 4, z);
+        strip.rotation.y = side > 0 ? -Math.PI/2 : Math.PI/2;
+        group.add(strip);
+      }
+    }
+  }
+
+  group.position.z = zPos;
+  scene.add(group);
+  return { group, zPos };
+}
+
+// ---------- OBSTACLES / COINS ----------
+function spawnObstacleInSegment(seg) {
+  if (Math.random() < 0.6) {
+    const lane = Math.floor(Math.random() * 3);
+    const x = LANES[lane];
+    const z = seg.zPos + (Math.random() - 0.5) * SEGMENT_LENGTH * 0.7;
+    
+    // 50% laser (jump), 50% block (avoid)
+    const type = Math.random();
+    let obj;
+    if (type < 0.5) {
+      obj = createLaserBarrier();
+      obj.userData.jumpRequired = true;
+    } else {
+      obj = createCyberBlock();
+      obj.userData.jumpRequired = false;
+    }
+    
+    obj.position.set(x, 0, z);
+    obj.userData.type = 'obstacle';
+    scene.add(obj);
+    obstacles.push(obj);
+  }
+}
+
+function spawnCoinsInSegment(seg) {
+  if (Math.random() < 0.7) {
+    const lane = Math.floor(Math.random() * 3);
+    const x = LANES[lane];
+    const count = 3 + Math.floor(Math.random() * 3);
+    const startZ = seg.zPos - SEGMENT_LENGTH * 0.3;
+    for (let i = 0; i < count; i++) {
+      const coin = createCoin();
+      coin.position.set(x, 1.2, startZ - i * 2.0);
+      coin.userData.type = 'coin';
+      scene.add(coin);
+      coinObjects.push(coin);
+    }
+  }
+}
+
+function createLaserBarrier() {
+  const group = new THREE.Group();
+  // Posts
+  const postGeo = new THREE.CylinderGeometry(0.1, 0.1, 1.5, 8);
+  const p1 = new THREE.Mesh(postGeo, metalBlockMat); p1.position.set(-1.2, 0.75, 0); p1.castShadow = true;
+  const p2 = new THREE.Mesh(postGeo, metalBlockMat); p2.position.set(1.2, 0.75, 0); p2.castShadow = true;
+  group.add(p1, p2);
+  
+  // Laser
+  const laserGeo = new THREE.BoxGeometry(2.4, 0.3, 0.1);
+  const laser = new THREE.Mesh(laserGeo, laserMat);
+  laser.position.set(0, 0.7, 0);
+  group.add(laser);
+  
+  group.userData.radius = 1.0;
+  return group;
+}
+
+function createCyberBlock() {
+  const group = new THREE.Group();
+  const geo = new THREE.BoxGeometry(1.8, 2.5, 1.2);
+  const block = new THREE.Mesh(geo, metalBlockMat);
+  block.position.y = 1.25;
+  block.castShadow = true; block.receiveShadow = true;
+  group.add(block);
+  
+  // Neon edges
+  const edges = new THREE.EdgesGeometry(geo);
+  const lines = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x00ffff }));
+  lines.position.y = 1.25;
+  group.add(lines);
+  
+  group.userData.radius = 0.9;
+  return group;
+}
+
+function createCoin() {
+  const geo = new THREE.TorusGeometry(0.35, 0.08, 8, 16);
+  const coin = new THREE.Mesh(geo, coinMat);
+  coin.rotation.y = Math.PI / 2;
+  return coin;
+}
+
+// ---------- PARTICLES ----------
+const particles = [];
+function spawnExplosion(pos) {
+  const count = 30;
+  for (let i = 0; i < count; i++) {
+    const size = 0.1 + Math.random() * 0.15;
+    const isCyan = Math.random() < 0.5;
+    const mat = isCyan ? cyanNeonMat : magentaNeonMat;
+    const p = new THREE.Mesh(new THREE.BoxGeometry(size, size, size), mat);
+    
+    p.position.copy(pos);
+    p.position.x += (Math.random() - 0.5) * 0.5;
+    p.position.y += Math.random() * 1.0;
+    p.position.z += (Math.random() - 0.5) * 0.5;
+    
+    p.userData.vel = new THREE.Vector3(
+      (Math.random() - 0.5) * 0.4,
+      0.2 + Math.random() * 0.4,
+      (Math.random() - 0.5) * 0.4
+    );
+    p.userData.life = 1.0;
+    p.userData.rotSpeed = new THREE.Vector3(Math.random()*0.2, Math.random()*0.2, Math.random()*0.2);
+    scene.add(p);
+    particles.push(p);
+  }
+}
+
+function updateParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.userData.vel.y += GRAVITY * 0.5;
+    p.position.add(p.userData.vel);
+    p.rotation.x += p.userData.rotSpeed.x;
+    p.rotation.y += p.userData.rotSpeed.y;
+    p.userData.life -= dt * 1.5;
+    
+    if (p.position.y < 0 || p.userData.life <= 0) {
+      scene.remove(p);
+      p.geometry.dispose();
+      particles.splice(i, 1);
+    }
+  }
+}
+
+// ---------- INIT WORLD ----------
+function initWorld() {
+  for (let i = 0; i < VISIBLE_SEGMENTS; i++) {
+    const z = -i * SEGMENT_LENGTH;
+    const seg = createSegment(z);
+    segments.push(seg);
+    if (i > 0) {
+      spawnObstacleInSegment(seg);
+      spawnCoinsInSegment(seg);
+    }
+  }
+}
+
+function recycleSegments() {
+  const playerZ = playerPivot.position.z;
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    if (seg.zPos > playerZ + SEGMENT_LENGTH) {
+      let minZ = Infinity;
+      for (const s of segments) if (s.zPos < minZ) minZ = s.zPos;
+      const newZ = minZ - SEGMENT_LENGTH;
+      seg.group.position.z = newZ;
+      seg.zPos = newZ;
+      spawnObstacleInSegment(seg);
+      spawnCoinsInSegment(seg);
+    }
+  }
+}
+
+// ---------- CONTROLS ----------
+const keys = {};
+window.addEventListener('keydown', (e) => {
+  keys[e.code] = true;
+  
+  // Старт по пробелу ДОЛЖЕН работать
+  if (!state.running && !state.gameOver && state.playerReady) {
+    if (e.code === 'Space') startGame();
+  }
+  // Рестарт по пробелу
+  if (state.gameOver && e.code === 'Space') {
+    restartGame();
+  }
+  
+  // Управление в игре
+  if (state.running) {
+    if (e.code === 'ArrowLeft' || e.code === 'KeyA') changeLane(-1);
+    if (e.code === 'ArrowRight' || e.code === 'KeyD') changeLane(1);
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jump();
+  }
+});
+window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+// Touch
+let touchStart = null;
+window.addEventListener('touchstart', (e) => {
+  if (!state.running && !state.gameOver && state.playerReady) { startGame(); return; }
+  if (state.gameOver) { restartGame(); return; }
+  touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
+
+window.addEventListener('touchend', (e) => {
+  if (!touchStart || !state.running) return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  
+  if (Math.max(ax, ay) < 25) { jump(); touchStart = null; return; }
+  
+  if (ax > ay) {
+    if (dx > 0) changeLane(1); else changeLane(-1);
+  } else {
+    if (dy < 0) jump();
+  }
+  touchStart = null;
+}, { passive: true });
+
+function changeLane(dir) {
+  const newLane = Math.max(0, Math.min(2, state.lane + dir));
+  if (newLane !== state.lane) {
+    state.lane = newLane;
+    state.targetLaneX = LANES[newLane];
+    state.tilt = -dir * 0.25;
+  }
+}
+
+function jump() {
+  if (!state.isJumping) {
+    state.isJumping = true;
+    state.velocityY = JUMP_VELOCITY;
+  }
+}
+
+// ---------- GAME FLOW ----------
+function startGame() {
+  state.running = true;
+  state.gameOver = false;
+  document.getElementById('startOverlay').classList.add('hidden');
+  document.getElementById('gameOverOverlay').classList.add('hidden');
+}
+
+function triggerGameOver() {
+  state.running = false;
+  state.gameOver = true;
+  spawnExplosion(playerPivot.position.clone().add(new THREE.Vector3(0, 1, 0)));
+  document.getElementById('finalScore').textContent = Math.floor(state.score);
+  document.getElementById('gameOverOverlay').classList.remove('hidden');
+}
+
+function restartGame() {
+  // Полная очистка динамических объектов
+  for (const o of obstacles) { scene.remove(o); disposeObject(o); }
+  obstacles.length = 0;
+  for (const c of coinObjects) { scene.remove(c); disposeObject(c); }
+  coinObjects.length = 0;
+  for (const p of particles) { scene.remove(p); p.geometry.dispose(); }
+  particles.length = 0;
+
+  state.score = 0;
+  state.coins = 0;
+  state.speed = 0.35;
+  state.distance = 0;
+  state.lane = 1;
+  state.targetLaneX = 0;
+  state.isJumping = false;
+  state.velocityY = 0;
+  state.tilt = 0;
+
+  playerPivot.position.set(0, state.playerBaseY, 0);
+
+  // ФИКС РЕСТАРТА: Возвращаем все куски дороги (со зданиями) вперед
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i];
+    seg.zPos = -i * SEGMENT_LENGTH;
+    seg.group.position.z = seg.zPos;
+    if (i > 0) {
+      spawnObstacleInSegment(seg);
+      spawnCoinsInSegment(seg);
+    }
+  }
+
+  document.getElementById('gameOverOverlay').classList.add('hidden');
+  state.running = true;
+  state.gameOver = false;
+}
+
+function disposeObject(obj) {
+  obj.traverse((c) => {
+    if (c.isMesh) {
+      if (c.geometry) c.geometry.dispose();
+      if (c.material) {
+        if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+        else c.material.dispose();
+      }
+    }
+  });
+}
+
+// ---------- COLLISION ----------
+function checkCollisions() {
+  const px = playerPivot.position.x;
+  const py = playerPivot.position.y;
+  const pz = playerPivot.position.z;
+  const playerRadius = 0.45;
+
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const o = obstacles[i];
+    const dx = o.position.x - px;
+    const dz = o.position.z - pz;
+    const r = (o.userData.radius || 0.9) + playerRadius;
+    
+    if (dx * dx + dz * dz < r * r) {
+      // Проверка по высоте (прыжок)
+      if (o.userData.jumpRequired) {
+        // Лазер на высоте 0.7. Если игрок выше лазера (py > 0.8), то пролетел
+        if (py > 0.9) continue;
+      } else {
+        // Блок высокий (2.5). Его не перепрыгнуть, если врезался - значит врезался
+      }
+      
+      triggerGameOver();
+      return;
+    }
+  }
+
+  for (let i = coinObjects.length - 1; i >= 0; i--) {
+    const c = coinObjects[i];
+    const dx = c.position.x - px;
+    const dy = c.position.y - (py + 1.0);
+    const dz = c.position.z - pz;
+    if (dx * dx + dy * dy + dz * dz < 1.5) {
+      scene.remove(c);
+      disposeObject(c);
+      coinObjects.splice(i, 1);
+      state.coins++;
+      state.score += 50;
+    }
+  }
+}
+
+// ---------- READY ----------
+function onReady() {
+  initWorld();
+  playerPivot.position.set(0, state.playerBaseY, 0);
+  document.getElementById('loading').classList.add('hidden');
+  animate();
+}
+
+// ---------- HUD UPDATE ----------
+const scoreEl = document.getElementById('score');
+const coinsEl = document.getElementById('coins');
+const speedEl = document.getElementById('speed');
+
+// ---------- ANIMATE ----------
+const clock = new THREE.Clock();
+function animate() {
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const elapsed = clock.elapsedTime;
+
+  if (mixer) mixer.update(dt);
+
+  if (state.running) {
+    state.speed = Math.min(state.maxSpeed, state.speed + state.speedInc);
+    state.distance += state.speed;
+    state.score += state.speed * 0.5;
+
+    // Movement
+    playerPivot.position.z -= state.speed;
+
+    // Lane Lerp
+    const dx = state.targetLaneX - playerPivot.position.x;
+    playerPivot.position.x += dx * 0.18;
+    
+    // Tilt
+    state.tilt *= 0.9;
+    playerPivot.rotation.z = state.tilt + (playerPivot.position.x - state.targetLaneX) * 0.05;
+
+    // Jump Physics
+    if (state.isJumping) {
+      state.velocityY += GRAVITY;
+      playerPivot.position.y += state.velocityY;
+      if (playerPivot.position.y <= state.playerBaseY) {
+        playerPivot.position.y = state.playerBaseY;
+        state.velocityY = 0;
+        state.isJumping = false;
+      }
+    }
+
+    // Coin Animation
+    for (const c of coinObjects) {
+      c.rotation.y += 0.1;
+    }
+
+    recycleSegments();
+
+    // Cleanup behind
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      if (obstacles[i].position.z > playerPivot.position.z + 15) {
+        scene.remove(obstacles[i]);
+        disposeObject(obstacles[i]);
+        obstacles.splice(i, 1);
+      }
+    }
+    for (let i = coinObjects.length - 1; i >= 0; i--) {
+      if (coinObjects[i].position.z > playerPivot.position.z + 15) {
+        scene.remove(coinObjects[i]);
+        disposeObject(coinObjects[i]);
+        coinObjects.splice(i, 1);
+      }
+    }
+
+    checkCollisions();
+
+    // Camera follow
+    const camTargetX = playerPivot.position.x * 0.4;
+    const camTargetZ = playerPivot.position.z + 9;
+    const camTargetY = 5.5 + playerPivot.position.y * 0.2; // Меньше тряски по Y
+    camera.position.x += (camTargetX - camera.position.x) * 0.1;
+    camera.position.z += (camTargetZ - camera.position.z) * 0.15;
+    camera.position.y += (camTargetY - camera.position.y) * 0.1;
+    camera.lookAt(playerPivot.position.x * 0.3, playerPivot.position.y + 1.5, playerPivot.position.z - 5);
+
+    // Spotlight follows player
+    spotLight.position.set(playerPivot.position.x, playerPivot.position.y + 10, playerPivot.position.z + 4);
+    spotLight.target.position.set(playerPivot.position.x, playerPivot.position.y, playerPivot.position.z - 4);
+    spotLight.target.updateMatrixWorld();
+
+    // HUD Update
+    scoreEl.textContent = Math.floor(state.score);
+    coinsEl.textContent = state.coins;
+    speedEl.innerHTML = Math.floor(state.speed * 120) + ' <span style="font-size:14px;font-weight:600;">км/ч</span>';
+  } else {
+    // Idle camera
+    camera.position.x = Math.sin(elapsed * 0.3) * 0.5;
+    camera.lookAt(0, 1.5, -5);
+  }
+
+  updateParticles(dt);
+  renderer.render(scene, camera);
+}
+
+// ---------- RESIZE ----------
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
