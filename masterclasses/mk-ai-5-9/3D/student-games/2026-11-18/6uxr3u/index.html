@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NULL.EXE — Endless Runner</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { overflow: hidden; background: #0a0a2e; font-family: 'Courier New', monospace; }
+canvas { display: block; }
+
+#hud {
+  position: fixed; top: 20px; left: 20px; right: 20px;
+  display: flex; justify-content: space-between; align-items: flex-start;
+  pointer-events: none; z-index: 10;
+}
+.hud-item {
+  color: #00ffcc; font-size: 18px; text-shadow: 0 0 10px #00ffcc, 0 0 20px #00ffcc;
+  letter-spacing: 2px;
+}
+.hud-item span { color: #cc44ff; text-shadow: 0 0 10px #cc44ff, 0 0 20px #cc44ff; }
+
+#overlay {
+  position: fixed; inset: 0; display: flex; flex-direction: column;
+  justify-content: center; align-items: center; z-index: 100;
+  background: rgba(10, 10, 46, 0.92);
+  backdrop-filter: blur(5px);
+}
+#overlay.hidden { display: none; }
+
+#overlay h1 {
+  font-size: 64px; color: #cc44ff;
+  text-shadow: 0 0 20px #cc44ff, 0 0 40px #cc44ff, 0 0 80px #cc44ff;
+  letter-spacing: 8px; margin-bottom: 10px;
+  animation: glitch 2s infinite;
+}
+#overlay h2 {
+  font-size: 24px; color: #00ffcc;
+  text-shadow: 0 0 10px #00ffcc; margin-bottom: 30px; letter-spacing: 4px;
+}
+#overlay .subtitle {
+  font-size: 14px; color: #8888aa; margin-bottom: 40px; letter-spacing: 2px;
+}
+#overlay .final-score {
+  font-size: 28px; color: #00ffcc;
+  text-shadow: 0 0 15px #00ffcc; margin-bottom: 30px;
+}
+
+#startBtn {
+  padding: 15px 50px; font-size: 20px; font-family: 'Courier New', monospace;
+  background: transparent; border: 2px solid #cc44ff; color: #cc44ff;
+  cursor: pointer; letter-spacing: 4px; transition: all 0.3s;
+  text-shadow: 0 0 10px #cc44ff; box-shadow: 0 0 15px #cc44ff44, inset 0 0 15px #cc44ff22;
+}
+#startBtn:hover {
+  background: #cc44ff22; box-shadow: 0 0 30px #cc44ff88, inset 0 0 30px #cc44ff44;
+  transform: scale(1.05);
+}
+
+.controls-info {
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+  color: #666688; font-size: 12px; letter-spacing: 2px; z-index: 10;
+  text-align: center; pointer-events: none;
+}
+
+@keyframes glitch {
+  0%, 90%, 100% { transform: translate(0); }
+  92% { transform: translate(-2px, 1px); }
+  94% { transform: translate(2px, -1px); }
+  96% { transform: translate(-1px, -1px); }
+  98% { transform: translate(1px, 1px); }
+}
+
+#scanline {
+  position: fixed; inset: 0; pointer-events: none; z-index: 50;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 2px,
+    rgba(0, 255, 204, 0.015) 2px, rgba(0, 255, 204, 0.015) 4px
+  );
+}
+</style>
+</head>
+<body>
+
+<div id="scanline"></div>
+
+<div id="hud" class="hidden">
+  <div class="hud-item">SCORE: <span id="scoreVal">0</span></div>
+  <div class="hud-item">SPEED: <span id="speedVal">1.0</span>x</div>
+  <div class="hud-item">CHIPS: <span id="chipsVal">0</span></div>
+</div>
+
+<div id="overlay">
+  <h1>NULL.EXE</h1>
+  <h2>ENDLESS RUNNER</h2>
+  <div class="subtitle">// DIGITAL VOID v3.7 //</div>
+  <div class="final-score hidden" id="finalScore"></div>
+  <button id="startBtn">INITIALIZE</button>
+</div>
+
+<div class="controls-info">
+  [A/D] или [←/→] — смена полосы &nbsp;|&nbsp; [W/↑/SPACE] — прыжок &nbsp;|&nbsp; SWIPE — мобильное
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ============ CONFIG ============
+const CONFIG = {
+  lanes: [-3, 0, 3],
+  playerBaseY: 0.5,
+  jumpForce: 0.28,
+  gravity: 0.012,
+  baseSpeed: 0.35,
+  maxSpeed: 1.2,
+  speedIncrement: 0.00008,
+  segmentLength: 40,
+  numSegments: 6,
+  spawnInterval: 25,
+  coinSpawnChance: 0.6,
+  obstacleSpawnChance: 0.7,
+};
+
+// ============ STATE ============
+let scene, camera, renderer, clock;
+let player, playerModel, hoverboard;
+let gameState = 'menu'; // menu, playing, gameover
+let currentLane = 1;
+let targetLaneX = 0;
+let velocityY = 0;
+let isJumping = false;
+let score = 0;
+let chips = 0;
+let speed = CONFIG.baseSpeed;
+let distanceTraveled = 0;
+let segments = [];
+let obstacles = [];
+let coins = [];
+let particles = [];
+let walls = [];
+let roadLines = [];
+let playerLight;
+let modelLoaded = false;
+
+// ============ DOM ============
+const overlay = document.getElementById('overlay');
+const startBtn = document.getElementById('startBtn');
+const hud = document.getElementById('hud');
+const scoreVal = document.getElementById('scoreVal');
+const speedVal = document.getElementById('speedVal');
+const chipsVal = document.getElementById('chipsVal');
+const finalScore = document.getElementById('finalScore');
+
+// ============ INIT ============
+function init() {
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a2e);
+  scene.fog = new THREE.FogExp2(0x0a0a2e, 0.025);
+
+  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 200);
+  camera.position.set(0, 5, 10);
+  camera.lookAt(0, 1, -10);
+
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
+  document.body.prepend(renderer.domElement);
+
+  clock = new THREE.Clock();
+
+  setupLights();
+  createPlayer();
+  createInitialSegments();
+  setupControls();
+
+  window.addEventListener('resize', onResize);
+  animate();
+}
+
+function setupLights() {
+  const ambient = new THREE.AmbientLight(0x1a1a4e, 0.6);
+  scene.add(ambient);
+
+  const dirLight = new THREE.DirectionalLight(0xcc44ff, 0.8);
+  dirLight.position.set(5, 15, 5);
+  dirLight.castShadow = true;
+  dirLight.shadow.mapSize.set(1024, 1024);
+  dirLight.shadow.camera.near = 0.5;
+  dirLight.shadow.camera.far = 50;
+  dirLight.shadow.camera.left = -15;
+  dirLight.shadow.camera.right = 15;
+  dirLight.shadow.camera.top = 15;
+  dirLight.shadow.camera.bottom = -15;
+  scene.add(dirLight);
+
+  const hemiLight = new THREE.HemisphereLight(0x1a1a4e, 0x0a0a2e, 0.3);
+  scene.add(hemiLight);
+
+  playerLight = new THREE.PointLight(0xcc44ff, 2, 8);
+  playerLight.position.set(0, 0.3, 0);
+  scene.add(playerLight);
+}
+
+function createPlayer() {
+  player = new THREE.Group();
+
+  // Hoverboard
+  hoverboard = new THREE.Group();
+  const boardGeo = new THREE.BoxGeometry(1.2, 0.08, 2.5);
+  const boardMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a2e,
+    emissive: 0xcc44ff,
+    emissiveIntensity: 0.5,
+    metalness: 0.9,
+    roughness: 0.2
+  });
+  const board = new THREE.Mesh(boardGeo, boardMat);
+  board.castShadow = true;
+  hoverboard.add(board);
+
+  // Board glow edges
+  const edgeGeo = new THREE.BoxGeometry(1.3, 0.02, 2.6);
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0xcc44ff, transparent: true, opacity: 0.6 });
+  const edge = new THREE.Mesh(edgeGeo, edgeMat);
+  edge.position.y = -0.04;
+  hoverboard.add(edge);
+
+  // Board underside glow
+  const glowGeo = new THREE.PlaneGeometry(1.0, 2.2);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: 0xcc44ff, transparent: true, opacity: 0.4, side: THREE.DoubleSide
+  });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.y = -0.1;
+  hoverboard.add(glow);
+
+  hoverboard.position.y = 0;
+  player.add(hoverboard);
+
+  // Try loading model
+  loadPlayerModel();
+
+  player.position.set(CONFIG.lanes[currentLane], CONFIG.playerBaseY, 0);
+  scene.add(player);
+}
+
+function loadPlayerModel() {
+  const loader = new GLTFLoader();
+  loader.load('player_game.glb',
+    (gltf) => {
+      playerModel = gltf.scene;
+      const box = new THREE.Box3().setFromObject(playerModel);
+      const size = box.getSize(new THREE.Vector3());
+      const scale = 2.0 / size.y;
+      playerModel.scale.set(scale, scale, scale);
+      playerModel.position.y = 0.1;
+      playerModel.traverse((child) => {
+        if (child.isMesh) {
+          child.castShadow = true;
+          child.material.emissive = new THREE.Color(0x4400aa);
+          child.material.emissiveIntensity = 0.3;
+        }
+      });
+      player.add(playerModel);
+      modelLoaded = true;
+    },
+    undefined,
+    () => {
+      // Fallback: capsule
+      createFallbackPlayer();
+    }
+  );
+}
+
+function createFallbackPlayer() {
+  const capsuleGeo = new THREE.CapsuleGeometry(0.3, 1.0, 8, 16);
+  const capsuleMat = new THREE.MeshStandardMaterial({
+    color: 0x1a1a3e,
+    emissive: 0xcc44ff,
+    emissiveIntensity: 0.4,
+    metalness: 0.7,
+    roughness: 0.3
+  });
+  playerModel = new THREE.Mesh(capsuleGeo, capsuleMat);
+  playerModel.position.y = 0.9;
+  playerModel.castShadow = true;
+  player.add(playerModel);
+  modelLoaded = true;
+
+  // Visor
+  const visorGeo = new THREE.BoxGeometry(0.35, 0.1, 0.15);
+  const visorMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc });
+  const visor = new THREE.Mesh(visorGeo, visorMat);
+  visor.position.set(0, 1.3, 0.25);
+  player.add(visor);
+}
+
+// ============ SEGMENTS ============
+function createInitialSegments() {
+  for (let i = 0; i < CONFIG.numSegments; i++) {
+    createSegment(-i * CONFIG.segmentLength);
+  }
+}
+
+function createSegment(zPos) {
+  const seg = new THREE.Group();
+  seg.position.z = zPos;
+
+  // Road surface
+  const roadGeo = new THREE.PlaneGeometry(10, CONFIG.segmentLength);
+  const roadMat = new THREE.MeshStandardMaterial({
+    color: 0x0d0d2a,
+    metalness: 0.5,
+    roughness: 0.8
+  });
+  const road = new THREE.Mesh(roadGeo, roadMat);
+  road.rotation.x = -Math.PI / 2;
+  road.position.y = -0.01;
+  road.receiveShadow = true;
+  seg.add(road);
+
+  // Lane lines (purple glowing)
+  for (let i = -1; i <= 1; i += 2) {
+    const lineGeo = new THREE.PlaneGeometry(0.08, CONFIG.segmentLength);
+    const lineMat = new THREE.MeshBasicMaterial({
+      color: 0xcc44ff, transparent: true, opacity: 0.7
+    });
+    const line = new THREE.Mesh(lineGeo, lineMat);
+    line.rotation.x = -Math.PI / 2;
+    line.position.set(i * 1.5, 0.01, 0);
+    seg.add(line);
+  }
+
+  // Center dashed line
+  for (let d = 0; d < CONFIG.segmentLength; d += 3) {
+    const dashGeo = new THREE.PlaneGeometry(0.06, 1.5);
+    const dashMat = new THREE.MeshBasicMaterial({
+      color: 0x00ffcc, transparent: true, opacity: 0.4
+    });
+    const dash = new THREE.Mesh(dashGeo, dashMat);
+    dash.rotation.x = -Math.PI / 2;
+    dash.position.set(0, 0.01, -CONFIG.segmentLength / 2 + d);
+    seg.add(dash);
+  }
+
+  // Walls
+  for (let side = -1; side <= 1; side += 2) {
+    const wallGeo = new THREE.BoxGeometry(0.3, 3, CONFIG.segmentLength);
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: 0x0a0a1e,
+      emissive: 0x1a0a3e,
+      emissiveIntensity: 0.2,
+      metalness: 0.8,
+      roughness: 0.4
+    });
+    const wall = new THREE.Mesh(wallGeo, wallMat);
+    wall.position.set(side * 5.5, 1.5, 0);
+    wall.castShadow = true;
+    seg.add(wall);
+
+    // Neon barrier on wall
+    const barrierGeo = new THREE.BoxGeometry(0.1, 0.15, CONFIG.segmentLength);
+    const barrierMat = new THREE.MeshBasicMaterial({ color: 0xcc44ff });
+    const barrier = new THREE.Mesh(barrierGeo, barrierMat);
+    barrier.position.set(side * 5.3, 0.8, 0);
+    seg.add(barrier);
+
+    const barrier2 = new THREE.Mesh(barrierGeo.clone(), new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.6 }));
+    barrier2.position.set(side * 5.3, 2.2, 0);
+    seg.add(barrier2);
+
+    // Vertical neon strips
+    for (let v = 0; v < CONFIG.segmentLength; v += 8) {
+      const stripGeo = new THREE.BoxGeometry(0.05, 3, 0.05);
+      const stripMat = new THREE.MeshBasicMaterial({ color: 0xcc44ff, transparent: true, opacity: 0.8 });
+      const strip = new THREE.Mesh(stripGeo, stripMat);
+      strip.position.set(side * 5.35, 1.5, -CONFIG.segmentLength / 2 + v);
+      seg.add(strip);
+    }
+  }
+
+  scene.add(seg);
+  segments.push(seg);
+
+  // Spawn obstacles and coins
+  if (zPos < -CONFIG.segmentLength) {
+    spawnContent(seg, zPos);
+  }
+}
+
+function spawnContent(seg, zPos) {
+  const numObjects = Math.floor(Math.random() * 3) + 1;
+
+  for (let i = 0; i < numObjects; i++) {
+    const lane = Math.floor(Math.random() * 3);
+    const z = zPos + Math.random() * (CONFIG.segmentLength - 10) - 5;
+
+    if (Math.random() < CONFIG.obstacleSpawnChance) {
+      spawnObstacle(lane, z);
+    }
+
+    if (Math.random() < CONFIG.coinSpawnChance) {
+      const coinLane = Math.floor(Math.random() * 3);
+      const coinZ = zPos + Math.random() * (CONFIG.segmentLength - 10) - 5;
+      spawnCoin(coinLane, coinZ);
+    }
+  }
+}
+
+function spawnObstacle(lane, z) {
+  const type = Math.random() > 0.5 ? 'drone' : 'barrier';
+  let obj;
+
+  if (type === 'drone') {
+    obj = new THREE.Group();
+    // Drone body
+    const bodyGeo = new THREE.OctahedronGeometry(0.5, 0);
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x1a0a2e,
+      emissive: 0xff2244,
+      emissiveIntensity: 0.6,
+      metalness: 0.9,
+      roughness: 0.2
+    });
+    const body = new THREE.Mesh(bodyGeo, bodyMat);
+    obj.add(body);
+
+    // Drone wings
+    for (let s = -1; s <= 1; s += 2) {
+      const wingGeo = new THREE.BoxGeometry(0.8, 0.05, 0.3);
+      const wingMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1a3e, emissive: 0xcc44ff, emissiveIntensity: 0.4
+      });
+      const wing = new THREE.Mesh(wingGeo, wingMat);
+      wing.position.set(s * 0.6, 0, 0);
+      obj.add(wing);
+    }
+
+    // Drone light
+    const droneLight = new THREE.PointLight(0xff2244, 1, 4);
+    obj.add(droneLight);
+
+    obj.position.set(CONFIG.lanes[lane], 1.5, z);
+    obj.userData = { type: 'drone', lane, baseY: 1.5, time: Math.random() * Math.PI * 2 };
+  } else {
+    obj = new THREE.Group();
+    // Barrier
+    const barGeo = new THREE.BoxGeometry(2.2, 1.5, 0.3);
+    const barMat = new THREE.MeshStandardMaterial({
+      color: 0x1a0a2e,
+      emissive: 0xcc44ff,
+      emissiveIntensity: 0.5,
+      metalness: 0.8,
+      roughness: 0.3
+    });
+    const bar = new THREE.Mesh(barGeo, barMat);
+    bar.castShadow = true;
+    obj.add(bar);
+
+    // Warning stripes
+    const stripeGeo = new THREE.BoxGeometry(2.3, 0.1, 0.35);
+    const stripeMat = new THREE.MeshBasicMaterial({ color: 0xff2244 });
+    const stripe1 = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe1.position.y = 0.5;
+    obj.add(stripe1);
+    const stripe2 = new THREE.Mesh(stripeGeo, stripeMat);
+    stripe2.position.y = -0.5;
+    obj.add(stripe2);
+
+    obj.position.set(CONFIG.lanes[lane], 0.75, z);
+    obj.userData = { type: 'barrier', lane };
+  }
+
+  obj.userData.isObstacle = true;
+  scene.add(obj);
+  obstacles.push(obj);
+}
+
+function spawnCoin(lane, z) {
+  const coinGroup = new THREE.Group();
+
+  // Holographic chip
+  const chipGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.08, 6);
+  const chipMat = new THREE.MeshStandardMaterial({
+    color: 0x00ffcc,
+    emissive: 0x00ffcc,
+    emissiveIntensity: 0.8,
+    metalness: 1.0,
+    roughness: 0.1,
+    transparent: true,
+    opacity: 0.85
+  });
+  const chip = new THREE.Mesh(chipGeo, chipMat);
+  chip.rotation.x = Math.PI / 2;
+  coinGroup.add(chip);
+
+  // Inner glow
+  const innerGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 6);
+  const innerMat = new THREE.MeshBasicMaterial({
+    color: 0x00ffcc, transparent: true, opacity: 0.6
+  });
+  const inner = new THREE.Mesh(innerGeo, innerMat);
+  inner.rotation.x = Math.PI / 2;
+  coinGroup.add(inner);
+
+  // Outer ring
+  const ringGeo = new THREE.TorusGeometry(0.4, 0.03, 8, 6);
+  const ringMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.5 });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  coinGroup.add(ring);
+
+  coinGroup.position.set(CONFIG.lanes[lane], 1.2, z);
+  coinGroup.userData = { isCoin: true, lane, collected: false };
+
+  scene.add(coinGroup);
+  coins.push(coinGroup);
+}
+
+// ============ PARTICLES ============
+function spawnParticles(position, color1, color2, count = 20) {
+  for (let i = 0; i < count; i++) {
+    const geo = new THREE.SphereGeometry(0.05 + Math.random() * 0.08, 4, 4);
+    const mat = new THREE.MeshBasicMaterial({
+      color: Math.random() > 0.5 ? color1 : color2,
+      transparent: true,
+      opacity: 1
+    });
+    const p = new THREE.Mesh(geo, mat);
+    p.position.copy(position);
+    p.userData = {
+      velocity: new THREE.Vector3(
+        (Math.random() - 0.5) * 0.3,
+        Math.random() * 0.2 + 0.1,
+        (Math.random() - 0.5) * 0.3
+      ),
+      life: 1.0,
+      decay: 0.015 + Math.random() * 0.02
+    };
+    scene.add(p);
+    particles.push(p);
+  }
+}
+
+function updateParticles() {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.position.add(p.userData.velocity);
+    p.userData.velocity.y -= 0.005;
+    p.userData.life -= p.userData.decay;
+    p.material.opacity = p.userData.life;
+    p.scale.setScalar(p.userData.life);
+
+    if (p.userData.life <= 0) {
+      scene.remove(p);
+      p.geometry.dispose();
+      p.material.dispose();
+      particles.splice(i, 1);
+    }
+  }
+}
+
+// ============ CONTROLS ============
+function setupControls() {
+  document.addEventListener('keydown', (e) => {
+    if (gameState !== 'playing') return;
+    switch (e.code) {
+      case 'ArrowLeft': case 'KeyA': moveLane(-1); break;
+      case 'ArrowRight': case 'KeyD': moveLane(1); break;
+      case 'ArrowUp': case 'KeyW': case 'Space': jump(); break;
+    }
+  });
+
+  // Touch/swipe
+  let touchStartX = 0, touchStartY = 0;
+  document.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  document.addEventListener('touchend', (e) => {
+    if (gameState !== 'playing') return;
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) > 30) {
+        moveLane(dx > 0 ? 1 : -1);
+      }
+    } else {
+      if (dy < -30) jump();
+    }
+  }, { passive: true });
+
+  startBtn.addEventListener('click', startGame);
+}
+
+function moveLane(dir) {
+  currentLane = Math.max(0, Math.min(2, currentLane + dir));
+  targetLaneX = CONFIG.lanes[currentLane];
+}
+
+function jump() {
+  if (!isJumping) {
+    isJumping = true;
+    velocityY = CONFIG.jumpForce;
+  }
+}
+
+// ============ GAME LOGIC ============
+function startGame() {
+  gameState = 'playing';
+  overlay.classList.add('hidden');
+  hud.classList.remove('hidden');
+  finalScore.classList.add('hidden');
+
+  // Reset
+  currentLane = 1;
+  targetLaneX = CONFIG.lanes[1];
+  velocityY = 0;
+  isJumping = false;
+  score = 0;
+  chips = 0;
+  speed = CONFIG.baseSpeed;
+  distanceTraveled = 0;
+
+  // Clear obstacles and coins
+  obstacles.forEach(o => { scene.remove(o); });
+  coins.forEach(c => { scene.remove(c); });
+  obstacles = [];
+  coins = [];
+
+  // Reset segments
+  segments.forEach(s => { scene.remove(s); });
+  segments = [];
+  createInitialSegments();
+
+  player.position.set(CONFIG.lanes[1], CONFIG.playerBaseY, 0);
+  clock.start();
+}
+
+function gameOver() {
+  gameState = 'gameover';
+  hud.classList.add('hidden');
+  overlay.classList.remove('hidden');
+  finalScore.classList.remove('hidden');
+  finalScore.textContent = `SCORE: ${score} | CHIPS: ${chips}`;
+  startBtn.textContent = 'REINITIALIZE';
+
+  spawnParticles(player.position.clone(), 0xcc44ff, 0xff2244, 40);
+}
+
+function updateGame(delta) {
+  if (gameState !== 'playing') return;
+
+  // Speed increase
+  speed = Math.min(CONFIG.maxSpeed, speed + CONFIG.speedIncrement);
+  distanceTraveled += speed;
+  score = Math.floor(distanceTraveled * 2);
+
+  // Move player horizontally
+  const lerpSpeed = 0.15;
+  player.position.x += (targetLaneX - player.position.x) * lerpSpeed;
+
+  // Jump physics
+  if (isJumping) {
+    velocityY -= CONFIG.gravity;
+    player.position.y += velocityY;
+    if (player.position.y <= CONFIG.playerBaseY) {
+      player.position.y = CONFIG.playerBaseY;
+      isJumping = false;
+      velocityY = 0;
+    }
+  }
+
+  // Hoverboard float animation
+  const time = clock.getElapsedTime();
+  hoverboard.position.y = Math.sin(time * 3) * 0.05;
+  hoverboard.rotation.z = Math.sin(time * 2) * 0.03;
+
+  // Player light follows
+  playerLight.position.set(player.position.x, 0.3, player.position.z);
+
+  // Move segments
+  segments.forEach(seg => {
+    seg.position.z += speed;
+  });
+
+  // Recycle segments
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (segments[i].position.z > CONFIG.segmentLength) {
+      scene.remove(segments[i]);
+      segments.splice(i, 1);
+
+      // Find furthest segment
+      let minZ = Infinity;
+      segments.forEach(s => { if (s.position.z < minZ) minZ = s.position.z; });
+
+      createSegment(minZ - CONFIG.segmentLength);
+    }
+  }
+
+  // Move obstacles
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const obs = obstacles[i];
+    obs.position.z += speed;
+
+    // Drone hover animation
+    if (obs.userData.type === 'drone') {
+      obs.userData.time += delta * 3;
+      obs.position.y = obs.userData.baseY + Math.sin(obs.userData.time) * 0.3;
+      obs.rotation.y += delta * 2;
+    }
+
+    // Remove if passed
+    if (obs.position.z > 15) {
+      scene.remove(obs);
+      obstacles.splice(i, 1);
+      continue;
+    }
+
+    // Collision check
+    const dx = Math.abs(player.position.x - obs.position.x);
+    const dz = Math.abs(player.position.z - obs.position.z);
+    const dy = Math.abs(player.position.y - obs.position.y);
+
+    if (dx < 1.0 && dz < 1.0 && dy < 1.2) {
+      spawnParticles(obs.position.clone(), 0xcc44ff, 0xff2244, 25);
+      gameOver();
+      return;
+    }
+  }
+
+  // Move coins
+  for (let i = coins.length - 1; i >= 0; i--) {
+    const coin = coins[i];
+    coin.position.z += speed;
+
+    // Rotate and bob
+    coin.rotation.y += delta * 3;
+    coin.rotation.x = Math.sin(time * 2 + i) * 0.2;
+    coin.position.y = 1.2 + Math.sin(time * 2.5 + i * 0.5) * 0.15;
+
+    // Remove if passed
+    if (coin.position.z > 15) {
+      scene.remove(coin);
+      coins.splice(i, 1);
+      continue;
+    }
+
+    // Collect check
+    if (!coin.userData.collected) {
+      const dx = Math.abs(player.position.x - coin.position.x);
+      const dz = Math.abs(player.position.z - coin.position.z);
+      const dy = Math.abs(player.position.y - coin.position.y);
+
+      if (dx < 1.2 && dz < 1.2 && dy < 1.5) {
+        coin.userData.collected = true;
+        chips++;
+        score += 50;
+        spawnParticles(coin.position.clone(), 0x00ffcc, 0xcc44ff, 12);
+        scene.remove(coin);
+        coins.splice(i, 1);
+      }
+    }
+  }
+
+  // Update HUD
+  scoreVal.textContent = score;
+  speedVal.textContent = (speed / CONFIG.baseSpeed).toFixed(1);
+  chipsVal.textContent = chips;
+}
+
+// ============ ANIMATION ============
+function animate() {
+  requestAnimationFrame(animate);
+
+  const delta = Math.min(clock.getDelta(), 0.05);
+
+  if (gameState === 'playing') {
+    updateGame(delta);
+  }
+
+  updateParticles();
+
+  // Camera subtle movement
+  if (gameState === 'playing') {
+    camera.position.x += (player.position.x * 0.3 - camera.position.x) * 0.05;
+    camera.position.y = 5 + Math.sin(clock.getElapsedTime() * 0.5) * 0.1;
+  }
+
+  renderer.render(scene, camera);
+}
+
+function onResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ============ START ============
+init();
+</script>
+</body>
+</html>
